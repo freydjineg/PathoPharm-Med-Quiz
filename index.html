@@ -653,6 +653,17 @@
 
   </div>
 
+  <!-- API Key -->
+  <div class="config-card" style="margin-top:16px;">
+    <div class="config-label">Anthropic API Key <span style="color:var(--red);font-size:10px;letter-spacing:1px;">REQUIRED FOR GITHUB / EXTERNAL HOSTING</span></div>
+    <input id="apiKeyInput" type="password" placeholder="sk-ant-..." autocomplete="off"
+      style="width:100%;background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color 0.2s;"
+      oninput="saveKey(this.value)"
+      onfocus="this.style.borderColor='var(--accent)'"
+      onblur="this.style.borderColor='var(--border)'">
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);">Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);text-decoration:none;">console.anthropic.com</a> · Stored locally in your browser, never sent anywhere except Anthropic.</div>
+  </div>
+
   <div id="homeError" class="error-box" style="display:none;margin-top:16px;"></div>
   <button class="start-btn" id="startBtn" onclick="startQuiz()">Generate Quiz →</button>
 </div>
@@ -699,209 +710,598 @@
 </div>
 
 <script>
-const DRUG_DATA = {
-  "Module 2": {
-    drugs: ["Acetaminophen"],
-    full: [
-      { name:"Acetaminophen", class:"Non-opioid Analgesic", moa:"Acts on heat-regulating center of hypothalamus", patientMoa:"Blocks pain/fever signals in the brain", indications:"Fever, Mild pain", contraindications:"Liver disease, Alcoholism", pearls:"Antidote: Acetylcysteine. Max 4g/day." }
-    ]
-  },
-  "Module 3": {
-    drugs: ["Aspirin","Etanercept","Methotrexate","Amoxicillin","Cefaclor","Ertapenem/Meropenem","Gentamicin","Ciprofloxacin","Doxycycline","Cotrimoxazole"],
-    full: [
-      { name:"Aspirin", class:"Salicylate/NSAID", moa:"Inhibits prostaglandins/platelet aggregation (COX 1&2)", patientMoa:"Blocks pain and thins blood", indications:"Pain, Fever, MI", contraindications:"Children (Reye's syndrome)", pearls:"Stop 1 week before surgery; watch for Tinnitus." },
-      { name:"Etanercept", class:"TNF Blocker (DMARD)", moa:"Binds and inactivates TNF-alpha", patientMoa:"Stops joint damage protein", indications:"RA, Psoriasis", contraindications:"Active infection", pearls:"Negative TB test required before starting." },
-      { name:"Methotrexate", class:"Antimetabolite (DMARD)", moa:"Interferes with folic acid/DNA synthesis", patientMoa:"Slows cells to stop joint attack", indications:"Cancers, RA", contraindications:"Pregnancy (Category X)", pearls:"Bone marrow suppression; monitor WBC/Platelets." },
-      { name:"Amoxicillin", class:"Penicillin", moa:"Inhibits cell wall synthesis", patientMoa:"Breaks bacterial cell wall", indications:"Bacterial infection", contraindications:"PCN Allergy", pearls:"Monitor for allergic rash/diarrhea." },
-      { name:"Cefaclor", class:"Cephalosporin (2nd Gen)", moa:"Inhibits cell wall synthesis", patientMoa:"Stops bacterial wall building", indications:"URI, Skin infections, UTI", contraindications:"PCN Allergy (10% cross-reactivity)", pearls:"10% cross-sensitivity with Penicillins." },
-      { name:"Ertapenem/Meropenem", class:"Carbapenem", moa:"Bactericidal cell wall inhibitor", patientMoa:"Strong wall destroyer", indications:"Serious systemic infection", contraindications:"Valproic Acid (reduces levels)", pearls:"Reserved for severe MDRO infections." },
-      { name:"Gentamicin", class:"Aminoglycoside", moa:"Inhibits protein synthesis", patientMoa:"Stops bacterial protein production", indications:"Severe Gram-negative infections", contraindications:"Hearing loss, Renal failure", pearls:"Nephrotoxic & Ototoxic. Monitor Troughs." },
-      { name:"Ciprofloxacin", class:"Fluoroquinolone", moa:"Inhibits DNA gyrase", patientMoa:"Breaks bacterial DNA", indications:"UTI, Anthrax, Respiratory infections", contraindications:"Age <18 or >60", pearls:"Black Box Warning: Tendon Rupture." },
-      { name:"Doxycycline", class:"Tetracycline", moa:"Inhibits protein synthesis", patientMoa:"Stops bacterial growth", indications:"Acne, Lyme disease, STIs", contraindications:"Pregnancy, Children under 8", pearls:"Teeth staining in children; photosensitivity." },
-      { name:"Cotrimoxazole", class:"Sulfonamide", moa:"Inhibits folic acid synthesis", patientMoa:"Blocks bacterial folic acid", indications:"UTI, Otitis Media", contraindications:"Sulfa allergy", pearls:"Drink lots of water to prevent crystal formation." }
-    ]
-  },
-  "Module 4": {
-    drugs: ["Heparin","Warfarin","Alteplase","Clopidogrel","Epoetin Alfa","Filgrastim","Cyanocobalamin"],
-    full: [
-      { name:"Heparin", class:"Anticoagulant", moa:"Indirect Thrombin Inhibitor via Antithrombin III", patientMoa:"Prevents blood thickening", indications:"DVT, PE, MI", contraindications:"Active bleeding, HIT (Heparin-Induced Thrombocytopenia)", pearls:"Antidote: Protamine Sulfate. Monitor aPTT." },
-      { name:"Warfarin", class:"Anticoagulant", moa:"Vitamin K Antagonist (Factors 2,7,9,10)", patientMoa:"Blocks Vitamin K to stop clots", indications:"A-fib, Clot prevention", contraindications:"Pregnancy", pearls:"Antidote: Vitamin K. Monitor PT/INR." },
-      { name:"Alteplase", class:"Thrombolytic", moa:"Converts plasminogen to plasmin", patientMoa:"Dissolves an existing clot", indications:"Stroke, PE, MI", contraindications:"Recent trauma or surgery", pearls:"Give within 3-4.5 hours of stroke onset." },
-      { name:"Clopidogrel", class:"Antiplatelet", moa:"ADP Receptor Blocker", patientMoa:"Keeps platelets from sticking", indications:"Post-MI, Stroke prevention", contraindications:"Active bleeding", pearls:"Stop 5 days before surgery." },
-      { name:"Epoetin Alfa", class:"ESA (Erythropoiesis-Stimulating Agent)", moa:"Stimulates erythropoiesis", patientMoa:"Signals body to make RBCs", indications:"Anemia in CKD", contraindications:"Uncontrolled HTN", pearls:"Risk of stroke if Hemoglobin >11." },
-      { name:"Filgrastim", class:"Colony Stimulating Factor (CSF)", moa:"Increases Neutrophil production", patientMoa:"Signals body to make WBCs", indications:"Neutropenia", contraindications:"Bone marrow cancer", pearls:"Expect bone pain; give Tylenol." },
-      { name:"Cyanocobalamin", class:"Vitamin B12 supplement", moa:"B12 supplement/replacement", patientMoa:"Provides missing B12", indications:"Pernicious Anemia", contraindications:"N/A", pearls:"Must be IM injection for life in Pernicious Anemia." }
-    ]
-  },
-  "Module 5": {
-    drugs: ["Donepezil","Levodopa-Carbidopa","Benztropine","Phenytoin","Valproic Acid","Ethosuximide","Morphine","Diazepam","Apixaban"],
-    full: [
-      { name:"Donepezil", class:"Cholinesterase Inhibitor", moa:"Increases Acetylcholine levels", patientMoa:"Boosts memory brain signals", indications:"Alzheimer's disease", contraindications:"GI obstruction", pearls:"Give at bedtime (HS); monitor heart rate." },
-      { name:"Levodopa-Carbidopa", class:"Dopaminergic", moa:"Dopamine precursor + peripheral protection", patientMoa:"Adds Dopamine to the brain", indications:"Parkinson's disease", contraindications:"Glaucoma", pearls:"Avoid high protein at dose time (competes for absorption)." },
-      { name:"Benztropine", class:"Anticholinergic", moa:"Muscarinic antagonist", patientMoa:"Blocks signals to stop tremors", indications:"Parkinson's (Tremors)", contraindications:"BPH, Glaucoma", pearls:"'Can't see, pee, spit, or s**t' — classic anticholinergic SEs." },
-      { name:"Phenytoin", class:"Hydantoin", moa:"Stabilizes sodium channels", patientMoa:"Calms brain signals", indications:"Seizures", contraindications:"Heart block", pearls:"Gingival Hyperplasia (gum overgrowth). Therapeutic level: 10-20." },
-      { name:"Valproic Acid", class:"Valproate/Anticonvulsant", moa:"Increases GABA", patientMoa:"Calms brain signals", indications:"Seizures, Bipolar disorder", contraindications:"Liver disease, Pregnancy", pearls:"Black Box Warning: Liver/Pancreas damage." },
-      { name:"Ethosuximide", class:"Succinimide", moa:"Depresses motor cortex", patientMoa:"Stops staring seizures", indications:"Absence Seizures", contraindications:"Renal/Liver disease", pearls:"Drug of choice for Absence seizures in children." },
-      { name:"Morphine", class:"Opioid Analgesic", moa:"Mu-receptor agonist", patientMoa:"Blocks pain receptors", indications:"Severe pain", contraindications:"Respiratory Depression", pearls:"Antidote: Naloxone. Always check respiratory rate." },
-      { name:"Diazepam", class:"Benzodiazepine", moa:"Enhances GABA (CNS depressant)", patientMoa:"Calms brain and muscles", indications:"Status Epilepticus, Anxiety", contraindications:"Sleep Apnea", pearls:"High addiction risk. Use with caution." },
-      { name:"Apixaban", class:"Factor Xa Inhibitor (Anticoagulant)", moa:"Factor Xa inhibitor", patientMoa:"Blocks clot proteins", indications:"Stroke/DVT prevention", contraindications:"Active bleeding", pearls:"Does not require INR monitoring." }
-    ]
-  },
-  "Module 6": {
-    drugs: ["Lisinopril/Enalapril","Losartan/Valsartan","Digoxin","Metoprolol","Diltiazem/Verapamil","Amlodipine","Nitroglycerin","Atorvastatin","Adenosine","Amiodarone"],
-    full: [
-      { name:"Lisinopril/Enalapril", class:"ACE Inhibitor", moa:"Blocks conversion of Angiotensin I to II", patientMoa:"Relaxes vessels; blocks tightening", indications:"HTN, HF, Post-MI", contraindications:"Pregnancy, Angioedema", pearls:"Causes dry cough; risk of Hyperkalemia." },
-      { name:"Losartan/Valsartan", class:"ARB", moa:"Blocks Angiotensin II receptors", patientMoa:"Blocks narrowing signals", indications:"HTN, HF", contraindications:"Pregnancy", pearls:"No dry cough; used as ACE inhibitor alternative." },
-      { name:"Digoxin", class:"Cardiac Glycoside", moa:"Positive Inotrope / Negative Chronotrope", patientMoa:"Stronger, slower heartbeat", indications:"HF, A-fib", contraindications:"V-fib, Bradycardia", pearls:"Yellow halos = Toxicity. Check Pulse and K+ levels." },
-      { name:"Metoprolol", class:"Beta-Blocker", moa:"Blocks Beta-1 receptors", patientMoa:"Slows heart and lowers BP", indications:"HF, HTN, MI", contraindications:"Asthma, Bradycardia", pearls:"Masks hypoglycemia tachycardia in diabetics." },
-      { name:"Diltiazem/Verapamil", class:"Calcium Channel Blocker (Non-DHP)", moa:"Blocks Calcium entry into cells", patientMoa:"Relaxes heart and vessels", indications:"HTN, A-fib, Angina", contraindications:"Heart Block", pearls:"No grapefruit juice." },
-      { name:"Amlodipine", class:"Calcium Channel Blocker (DHP)", moa:"Dihydropyridine CCB — blocks Ca2+ in vessels", patientMoa:"Relaxes blood vessels", indications:"Hypertension", contraindications:"Hypotension", pearls:"Watch for peripheral edema." },
-      { name:"Nitroglycerin", class:"Nitrate", moa:"Relaxes vascular smooth muscle", patientMoa:"Widens heart vessels", indications:"Angina", contraindications:"Viagra/ED medications (severe hypotension)", pearls:"Headache expected; store in dark container." },
-      { name:"Atorvastatin", class:"Statin (HMG-CoA Reductase Inhibitor)", moa:"Inhibits HMG-CoA reductase", patientMoa:"Lowers liver cholesterol production", indications:"Dyslipidemia", contraindications:"Liver disease, Pregnancy", pearls:"Rhabdomyolysis risk — monitor for muscle pain." },
-      { name:"Adenosine", class:"Antidysrhythmic", moa:"Slows AV node conduction", patientMoa:"Resets the heart rhythm", indications:"SVT (Supraventricular Tachycardia)", contraindications:"Heart Block", pearls:"Must give as Rapid IV Push." },
-      { name:"Amiodarone", class:"K+ Channel Blocker (Antidysrhythmic)", moa:"Prolongs action potential", patientMoa:"Calms chaotic heart rhythm", indications:"V-Tach, V-Fib", contraindications:"Iodine Allergy", pearls:"Pulmonary toxicity risk; multiple drug interactions." }
-    ]
-  },
-  "Module 7": {
-    drugs: ["Albuterol","Ipratropium","Guaifenesin"],
-    full: [
-      { name:"Albuterol", class:"Short-Acting Beta-2 Agonist (SABA)", moa:"Beta-2 Agonist — bronchodilation", patientMoa:"Opens airways fast", indications:"Acute Asthma Attack", contraindications:"Dysrhythmias", pearls:"Rescue inhaler. Causes jitteriness/tremors." },
-      { name:"Ipratropium", class:"Anticholinergic Bronchodilator", moa:"Blocks muscarinic receptors in airways", patientMoa:"Stops airway tightening", indications:"COPD, Asthma (maintenance)", contraindications:"Soy/Peanut allergy", pearls:"Maintenance use only — not for rescue." },
-      { name:"Guaifenesin", class:"Expectorant", moa:"Reduces viscosity of mucus secretions", patientMoa:"Thins lung mucus", indications:"Productive cough", contraindications:"N/A", pearls:"Drink plenty of water to help thin mucus." }
-    ]
-  },
-  "Module 8": {
-    drugs: ["Furosemide","Spironolactone","Mannitol","Finasteride","Tamsulosin"],
-    full: [
-      { name:"Furosemide", class:"Loop Diuretic", moa:"Blocks Na+/K+/2Cl- transporter in Loop of Henle", patientMoa:"Strong water pill that dumps potassium", indications:"Edema, HF", contraindications:"Anuria", pearls:"Potassium-wasting. Monitor for Hypokalemia." },
-      { name:"Spironolactone", class:"K+ Sparing Diuretic / Aldosterone Antagonist", moa:"Aldosterone Antagonist", patientMoa:"Dumps water, keeps potassium", indications:"HTN, Ascites, HF", contraindications:"Hyperkalemia", pearls:"Watch for Peaked T-waves (hyperkalemia sign)." },
-      { name:"Mannitol", class:"Osmotic Diuretic", moa:"Increases osmotic pressure to pull fluid", patientMoa:"Pulls fluid out of brain", indications:"Increased ICP", contraindications:"Dehydration", pearls:"Use filter needle — crystallizes in solution." },
-      { name:"Finasteride", class:"5-Alpha Reductase Inhibitor", moa:"Blocks conversion of Testosterone to DHT", patientMoa:"Shrinks the prostate", indications:"BPH", contraindications:"Pregnancy", pearls:"Teratogenic. Pregnant women must not handle crushed tablets." },
-      { name:"Tamsulosin", class:"Alpha-1 Blocker", moa:"Relaxes smooth muscle in prostate/bladder neck", patientMoa:"Relaxes bladder exit", indications:"BPH", contraindications:"Orthostatic Hypotension", pearls:"Dizziness and falls risk on first dose." }
-    ]
-  },
-  "Module 9": {
-    drugs: ["Metformin","Levothyroxine","PTU/Methimazole","Regular Insulin","Glucagon"],
-    full: [
-      { name:"Metformin", class:"Biguanide", moa:"Decreases hepatic glucose production", patientMoa:"Helps the body use insulin better", indications:"Type 2 Diabetes", contraindications:"Renal Failure", pearls:"Hold 48 hours before/after contrast dye." },
-      { name:"Levothyroxine", class:"Synthetic Thyroid Hormone", moa:"Replaces/supplements T4 hormone", patientMoa:"Replaces thyroid hormone", indications:"Hypothyroidism", contraindications:"Acute MI", pearls:"Take on empty stomach; takes 8 weeks for full effect." },
-      { name:"PTU/Methimazole", class:"Antithyroid Agent", moa:"Blocks T3/T4 synthesis", patientMoa:"Stops thyroid from overworking", indications:"Hyperthyroidism", contraindications:"Pregnancy (PTU is safer in 1st trimester)", pearls:"Monitor for Thyroid Storm." },
-      { name:"Regular Insulin", class:"Short-Acting Insulin", moa:"Insulin receptor agonist — moves glucose into cells", patientMoa:"Moves sugar into cells", indications:"Diabetes Mellitus, Hyperkalemia", contraindications:"Hypoglycemia", pearls:"Peak: 2-4 hours. Only insulin given IV." },
-      { name:"Glucagon", class:"Glucose-Elevating Agent", moa:"Stimulates glycogen breakdown in liver", patientMoa:"Raises blood sugar fast", indications:"Severe Hypoglycemia", contraindications:"N/A", pearls:"Used for unconscious patients who can't take oral glucose." }
-    ]
-  },
-  "Module 10": {
-    drugs: ["Lactulose","Omeprazole","Sucralfate","Metoclopramide"],
-    full: [
-      { name:"Lactulose", class:"Osmotic Laxative", moa:"Traps and excretes Ammonia in colon", patientMoa:"Eliminates brain toxins via stool", indications:"Hepatic Encephalopathy", contraindications:"Galactosemia", pearls:"Goal is improved mental status (ammonia reduction)." },
-      { name:"Omeprazole", class:"Proton Pump Inhibitor (PPI)", moa:"Inhibits H+/K+ ATPase (proton pump)", patientMoa:"Stops acid pumps in stomach", indications:"GERD, PUD", contraindications:"N/A", pearls:"Take 30-60 minutes BEFORE breakfast for best effect." },
-      { name:"Sucralfate", class:"GI Protectant", moa:"Forms protective complex over ulcer surface", patientMoa:"Creates ulcer bandage", indications:"PUD (Peptic Ulcer Disease)", contraindications:"Renal Failure", pearls:"Take on empty stomach for best adherence to ulcer." },
-      { name:"Metoclopramide", class:"Prokinetic Agent", moa:"Dopamine antagonist — speeds gastric emptying", patientMoa:"Speeds up stomach movement", indications:"Gastroparesis", contraindications:"Bowel Obstruction", pearls:"Risk of Tardive Dyskinesia with long-term use." }
-    ]
-  },
-  "Module 11": {
-    drugs: ["Colchicine","Allopurinol","Alendronate","Calcitonin"],
-    full: [
-      { name:"Colchicine", class:"Antigout Agent", moa:"Inhibits leukocyte migration to joint", patientMoa:"Stops gout flare pain", indications:"Acute Gout", contraindications:"Renal disease", pearls:"Causes severe diarrhea; use for ACUTE attacks only." },
-      { name:"Allopurinol", class:"Xanthine Oxidase Inhibitor", moa:"Inhibits xanthine oxidase to reduce uric acid", patientMoa:"Stops uric acid crystal production", indications:"Chronic Gout", contraindications:"Rash/Stevens-Johnson Syndrome risk", pearls:"Watch for rash — can progress to SJS." },
-      { name:"Alendronate", class:"Bisphosphonate", moa:"Inhibits osteoclast activity", patientMoa:"Stops bone-breaking cells", indications:"Osteoporosis", contraindications:"Esophageal issues", pearls:"Stay upright for 30 minutes after taking." },
-      { name:"Calcitonin", class:"Antihypercalcemic Agent", moa:"Inhibits osteoclasts; promotes Ca2+ bone deposition", patientMoa:"Moves calcium back into bone", indications:"Hypercalcemia", contraindications:"Salmon Allergy", pearls:"'Tones' down serum calcium levels." }
-    ]
-  }
-};
+const QUESTION_BANK = [
+  // MODULE 2: Acetaminophen
+  {drug:"Acetaminophen",module:"Module 2",topic:"MOA",showDrugName:false,
+   q:"A patient has a mild headache and low-grade fever. The nurse gives a non-opioid analgesic that acts centrally on the hypothalamic heat-regulating center. Unlike NSAIDs, it does NOT inhibit peripheral COX enzymes. Which drug was given?",
+   choices:{A:"Ibuprofen",B:"Acetaminophen",C:"Aspirin",D:"Naproxen"},correct:"B",
+   rationale:{correct:"Acetaminophen works centrally on the hypothalamus to reduce fever and modulate pain. It does not inhibit COX enzymes peripherally, which is why it lacks anti-inflammatory effects and doesn't cause GI upset.",
+   wrong:{A:"Ibuprofen is a peripheral COX-1/2 inhibitor with anti-inflammatory effects.",C:"Aspirin irreversibly inhibits both COX-1 and COX-2 peripherally.",D:"Naproxen is also a peripheral NSAID with anti-inflammatory properties."},
+   pearl:"Antidote: Acetylcysteine (NAC). Max dose 4g/day. Reduce to 2g/day in liver disease or alcohol users. Found in 600+ OTC products — counsel patients to check ALL labels. #1 cause of acute liver failure in the US from overdose."}},
 
-const MODULE_NAMES = Object.keys(DRUG_DATA);
+  {drug:"Acetaminophen",module:"Module 2",topic:"Contraindication",showDrugName:true,
+   q:"The nurse is preparing Acetaminophen 650mg PO. Which condition is a contraindication requiring dose reduction or avoidance?",
+   choices:{A:"Mild osteoarthritis",B:"Chronic liver disease with daily alcohol use",C:"Hypertension",D:"Mild renal insufficiency (GFR 55)"},correct:"B",
+   rationale:{correct:"In liver disease or chronic alcohol use, the toxic metabolite NAPQI cannot be adequately conjugated by glutathione, leading to hepatotoxicity even at normal doses.",
+   wrong:{A:"Acetaminophen is actually preferred over NSAIDs in osteoarthritis — safer for GI and kidneys.",C:"Hypertension is not a contraindication — acetaminophen does not affect blood pressure.",D:"Mild renal insufficiency does not significantly affect acetaminophen metabolism."},
+   pearl:"Antidote: Acetylcysteine replenishes glutathione to neutralize NAPQI. Give within 8-10 hours of overdose for best results. In alcoholics: even therapeutic doses may be hepatotoxic."}},
 
-// State
+  {drug:"Acetaminophen",module:"Module 2",topic:"Indication",showDrugName:true,
+   q:"Acetaminophen is preferred over NSAIDs in which patient scenario?",
+   choices:{A:"Patient with peptic ulcer disease needing pain control",B:"Patient with inflammatory arthritis needing anti-inflammatory effect",C:"Patient post-MI needing antiplatelet coverage",D:"Patient needing maximum anti-inflammatory relief"},correct:"A",
+   rationale:{correct:"Acetaminophen does not irritate the GI mucosa and has no COX inhibition, making it the safest analgesic for patients with PUD or GI sensitivity.",
+   wrong:{B:"Acetaminophen lacks anti-inflammatory properties — NSAIDs or DMARDs are needed.",C:"Aspirin (low-dose) provides antiplatelet coverage — acetaminophen does not.",D:"Acetaminophen has minimal anti-inflammatory effect — NSAIDs are superior for inflammation."},
+   pearl:"Safe for GI, kidneys (in therapeutic doses), and platelets. Max 4g/day. Found in hundreds of combination products — always ask patients what OTC medications they take."}},
+
+  // MODULE 3: Aspirin
+  {drug:"Aspirin",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A patient with acute MI is given a drug that irreversibly inhibits COX-1 and COX-2, blocking thromboxane A2 and preventing platelet aggregation for the platelet's lifetime. Which drug is this?",
+   choices:{A:"Clopidogrel",B:"Heparin",C:"Aspirin",D:"Warfarin"},correct:"C",
+   rationale:{correct:"Aspirin irreversibly acetylates COX-1 and COX-2. Inhibiting COX-1 in platelets prevents thromboxane A2 production, blocking platelet aggregation. Because platelets have no nucleus, they cannot regenerate COX — the effect lasts the platelet lifetime (~7-10 days).",
+   wrong:{A:"Clopidogrel blocks ADP receptors (P2Y12) on platelets — different antiplatelet mechanism.",B:"Heparin is an anticoagulant via antithrombin III — not antiplatelet.",D:"Warfarin inhibits Vitamin K clotting factor synthesis — not antiplatelet."},
+   pearl:"Stop aspirin 7 days before surgery. Tinnitus = early toxicity sign. NEVER in children with viral illness — risk of Reye's syndrome (fatal liver/brain disease). Dose range: 81mg (cardiac protection) to 325-650mg (pain/fever)."}},
+
+  {drug:"Aspirin",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"A parent asks about giving Aspirin to their 8-year-old child with influenza and fever. The nurse's most important response is:",
+   choices:{A:"Low-dose aspirin is safe in children with viral illness",B:"Aspirin is contraindicated in children with viral illness due to risk of Reye's syndrome",C:"Aspirin is safe as long as the dose doesn't exceed 325mg",D:"Aspirin can be given if acetaminophen is unavailable"},correct:"B",
+   rationale:{correct:"Aspirin + viral illness in children = Reye's syndrome risk — a rare but potentially fatal condition causing acute liver failure and encephalopathy. It is absolutely contraindicated.",
+   wrong:{A:"There is no safe dose in children with viral illness — the contraindication is absolute.",C:"Dose does not change the risk of Reye's syndrome — the mechanism is not dose-dependent.",D:"Acetaminophen or ibuprofen are always preferred for pediatric fever."},
+   pearl:"Reye's syndrome: aspirin + viral illness (flu, chickenpox) in children = liver failure + brain swelling. Use acetaminophen or ibuprofen for pediatric fever. Adult uses: MI prevention, ACS, stroke prevention, pain, fever."}},
+
+  // Etanercept
+  {drug:"Etanercept",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A patient with RA is started on a biologic DMARD that binds and neutralizes TNF-alpha, preventing it from triggering joint inflammation and destruction. Which drug class is described?",
+   choices:{A:"Methotrexate — antimetabolite",B:"Etanercept — TNF blocker",C:"Prednisone — corticosteroid",D:"Hydroxychloroquine — antimalarial"},correct:"B",
+   rationale:{correct:"Etanercept is a fusion protein (TNF receptor + IgG Fc region) that acts as a decoy receptor, binding and neutralizing TNF-alpha before it can activate synovial inflammation.",
+   wrong:{A:"Methotrexate inhibits folic acid/DNA synthesis — not a biologic and doesn't specifically target TNF.",C:"Prednisone broadly suppresses immune function — not TNF-specific.",D:"Hydroxychloroquine modulates lysosomal pH and TLR signaling — different mechanism."},
+   pearl:"ALL TNF blockers require NEGATIVE TB test before starting — TNF is essential for TB granuloma containment. Blocking TNF reactivates latent TB. Screen for hepatitis B also. Contraindicated in active infections. Suffix: -ercept."}},
+
+  {drug:"Etanercept",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Before initiating Etanercept for RA, which pre-treatment screening is MOST critical?",
+   choices:{A:"Serum creatinine for renal function",B:"Negative tuberculosis (TB) test",C:"Liver function tests",D:"Thyroid function panel"},correct:"B",
+   rationale:{correct:"TNF-alpha is essential for maintaining latent TB granulomas. Blocking TNF with etanercept can reactivate latent TB. A negative TB test (PPD or IGRA) is mandatory before starting any TNF blocker.",
+   wrong:{A:"Renal function is not the primary concern — etanercept is not significantly nephrotoxic.",C:"LFTs are monitored but TB screening is the most critical mandatory pre-treatment step.",D:"Thyroid function is not directly related to TNF inhibition risks."},
+   pearl:"Biologic DMARDs (TNF blockers): etanercept, adalimumab, infliximab — ALL require negative TB screening. Contraindicated in: active infection, lymphoma, CHF, demyelinating disease. Live vaccines contraindicated. Suffix: -ercept (fusion proteins), -mab (monoclonal antibodies)."}},
+
+  // Methotrexate
+  {drug:"Methotrexate",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A patient with RA is prescribed a DMARD that inhibits dihydrofolate reductase, blocking folic acid metabolism and DNA synthesis in rapidly dividing immune cells. This same drug is used in oncology at higher doses. Which drug is described?",
+   choices:{A:"Hydroxychloroquine",B:"Sulfasalazine",C:"Methotrexate",D:"Leflunomide"},correct:"C",
+   rationale:{correct:"Methotrexate is an antimetabolite that inhibits dihydrofolate reductase, blocking the conversion of folate to its active form needed for DNA and RNA synthesis. This slows rapidly dividing immune cells driving RA inflammation.",
+   wrong:{A:"Hydroxychloroquine modulates lysosomal pH and TLR signaling — different mechanism.",B:"Sulfasalazine has anti-inflammatory and antimicrobial properties — different mechanism.",D:"Leflunomide inhibits pyrimidine synthesis — related but distinct mechanism."},
+   pearl:"Category X — teratogen. Monitor CBC (bone marrow suppression) and LFTs (hepatotoxicity). Weekly dosing for RA — NOT daily. Supplement folic acid 1mg/day to reduce side effects without losing efficacy. Antidote for overdose: Leucovorin (folinic acid)."}},
+
+  {drug:"Methotrexate",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Which finding is an absolute contraindication to starting Methotrexate for RA?",
+   choices:{A:"Elevated CRP and ESR",B:"Pregnancy",C:"Mild hypertension",D:"Age over 65"},correct:"B",
+   rationale:{correct:"Methotrexate is Pregnancy Category X. It is a known teratogen and abortifacient causing fetal death, neural tube defects, and major malformations. Absolutely contraindicated in pregnancy and requires effective contraception in both men and women of reproductive age.",
+   wrong:{A:"Elevated inflammatory markers are indications FOR methotrexate therapy.",C:"Hypertension is not a contraindication.",D:"Age alone is not an absolute contraindication — monitor more closely in elderly."},
+   pearl:"Black Box Warnings: hepatotoxicity, bone marrow suppression, pulmonary toxicity, severe teratogenicity. Bone marrow suppression: monitor WBC/Platelets. Hepatotoxicity: monitor LFTs every 3-6 months. Folic acid reduces side effects. Weekly dosing only for RA."}},
+
+  // Amoxicillin
+  {drug:"Amoxicillin",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"An antibiotic prescribed for a strep throat infection kills bacteria by inhibiting cell wall synthesis — binding penicillin-binding proteins (PBPs) and preventing peptidoglycan cross-linking. Which drug class does this describe?",
+   choices:{A:"Fluoroquinolone — inhibits DNA gyrase",B:"Aminoglycoside — inhibits protein synthesis",C:"Penicillin — inhibits cell wall synthesis",D:"Macrolide — inhibits 50S ribosome"},correct:"C",
+   rationale:{correct:"Amoxicillin (a penicillin) inhibits bacterial cell wall synthesis by binding PBPs, preventing peptidoglycan cross-linking. Without a stable cell wall, osmotic pressure causes the bacterium to lyse — bactericidal mechanism.",
+   wrong:{A:"Fluoroquinolones (ciprofloxacin) target DNA gyrase/topoisomerase IV.",B:"Aminoglycosides (gentamicin) bind the 30S ribosomal subunit.",D:"Macrolides (azithromycin) inhibit the 50S ribosomal subunit."},
+   pearl:"PCN allergy: monitor for rash, urticaria, anaphylaxis. 10% cross-reactivity with cephalosporins. Common GI side effects — take with food. Amoxicillin rash in mononucleosis (EBV) is NOT a true penicillin allergy. Can reduce oral contraceptive efficacy — counsel backup contraception."}},
+
+  {drug:"Amoxicillin",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Amoxicillin is ordered for a patient with otitis media. Which finding requires the nurse to hold the medication and contact the provider immediately?",
+   choices:{A:"Mild nausea on previous antibiotics",B:"Documented penicillin allergy with prior anaphylaxis",C:"Current use of oral contraceptives",D:"History of C. difficile 2 years ago with no recurrence"},correct:"B",
+   rationale:{correct:"Documented penicillin allergy with anaphylaxis is the primary contraindication. IgE-mediated anaphylaxis can be life-threatening on re-exposure. The provider must be notified to select an alternative.",
+   wrong:{A:"Mild nausea is a common GI side effect, not a contraindication.",C:"OCP interaction requires counseling for backup contraception — not a contraindication.",D:"Remote C. diff without recurrence warrants monitoring but is not an absolute contraindication."},
+   pearl:"10% cross-reactivity between penicillins and cephalosporins. If true anaphylaxis to PCN, avoid cephalosporins too. Monitor for allergic rash (especially maculopapular rash — common in EBV patients and NOT a true allergy). Diarrhea is common — monitor for C. diff with prolonged use."}},
+
+  // Cefaclor
+  {drug:"Cefaclor",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A 2nd-generation cephalosporin is prescribed for a patient with otitis media. Like all beta-lactams, it inhibits bacterial cell wall synthesis. Which critically important pharmacological fact about this drug class must the nurse know?",
+   choices:{A:"It inhibits DNA gyrase and is bacteriostatic",B:"It has 10% cross-reactivity with penicillin-allergic patients",C:"It works by inhibiting the 30S ribosomal subunit",D:"It is the drug of choice for MRSA"},correct:"B",
+   rationale:{correct:"Cephalosporins share structural similarity with penicillins and have approximately 10% cross-reactivity in penicillin-allergic patients. This is critically important before prescribing — patients with severe PCN allergy (anaphylaxis) may also react to cephalosporins.",
+   wrong:{A:"Cefaclor is bactericidal through cell wall synthesis inhibition — not DNA gyrase.",C:"30S ribosomal inhibition is the aminoglycoside/tetracycline mechanism.",D:"Cephalosporins do NOT cover MRSA (except 5th gen ceftaroline)."},
+   pearl:"Cefaclor (2nd gen): URI, otitis media, skin infections, UTIs. 10% cross-sensitivity with PCN. Cephalosporins by generation: 1st gen = gram-positive; 2nd gen = extended gram-negative; 3rd gen = serious gram-negative/meningitis; 4th gen = Pseudomonas; 5th gen = MRSA."}},
+
+  // Gentamicin
+  {drug:"Gentamicin",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"An antibiotic for severe gram-negative infections irreversibly binds the 30S ribosomal subunit, causing mRNA misreading and inhibiting protein synthesis. Trough levels must be monitored. This drug is both nephrotoxic and ototoxic. Which drug is described?",
+   choices:{A:"Doxycycline",B:"Gentamicin",C:"Azithromycin",D:"Ciprofloxacin"},correct:"B",
+   rationale:{correct:"Gentamicin is an aminoglycoside that irreversibly binds the 30S ribosome, causing misreading of the genetic code. It is concentration-dependent and bactericidal against gram-negative organisms. Trough monitoring is critical for toxicity prevention.",
+   wrong:{A:"Doxycycline reversibly binds the 30S ribosome — bacteriostatic, not bactericidal.",C:"Azithromycin binds the 50S ribosomal subunit — different target.",D:"Ciprofloxacin inhibits DNA gyrase — not ribosomal."},
+   pearl:"NEPHROTOXIC and OTOTOXIC. Monitor TROUGHS (before next dose) for toxicity. Elevated troughs = drug accumulation = kidney/ear damage. Signs: rising creatinine (nephrotoxicity), hearing loss or tinnitus (ototoxicity — may be permanent). Use once-daily dosing when possible. Avoid in elderly and pre-existing renal impairment."}},
+
+  {drug:"Gentamicin",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Gentamicin is ordered for a severe gram-negative infection. Which combination of pre-existing conditions poses the greatest risk?",
+   choices:{A:"Hypertension on lisinopril",B:"Pre-existing sensorineural hearing loss and CKD stage 3",C:"Penicillin allergy",D:"Type 2 diabetes on metformin"},correct:"B",
+   rationale:{correct:"Gentamicin is both nephrotoxic and ototoxic. CKD reduces drug clearance, increasing accumulation and nephrotoxicity risk. Pre-existing hearing loss is dramatically worsened by ototoxicity — which may be permanent and cumulative.",
+   wrong:{A:"Hypertension with an ACE inhibitor warrants monitoring but is not the primary safety concern.",C:"PCN allergy is completely unrelated to aminoglycoside therapy.",D:"Diabetes increases nephrotoxicity risk but is not a contraindication with appropriate monitoring."},
+   pearl:"Monitor TROUGHS (just before next dose) for nephrotoxicity. Monitor for tinnitus and hearing changes. Hearing loss can be irreversible. Contraindicated in pre-existing hearing loss or severe renal impairment unless absolutely no alternative. Adjust dose for renal function."}},
+
+  // Ciprofloxacin
+  {drug:"Ciprofloxacin",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"An antibiotic prescribed for a complicated UTI kills bacteria by inhibiting DNA gyrase and topoisomerase IV, preventing DNA replication. It carries a Black Box Warning for a specific musculoskeletal complication. Which drug class is this?",
+   choices:{A:"Penicillins",B:"Tetracyclines",C:"Fluoroquinolones",D:"Sulfonamides"},correct:"C",
+   rationale:{correct:"Fluoroquinolones (ciprofloxacin, levofloxacin) inhibit DNA gyrase (topoisomerase II) and topoisomerase IV — enzymes essential for bacterial DNA replication and repair. This results in bactericidal activity.",
+   wrong:{A:"Penicillins inhibit cell wall synthesis — not DNA replication.",B:"Tetracyclines inhibit protein synthesis at the 30S ribosome.",D:"Sulfonamides block folic acid synthesis — not DNA directly."},
+   pearl:"BLACK BOX WARNING: Tendon rupture (especially Achilles tendon). Risk increases with: age >60, concurrent corticosteroids, renal disease. Avoid in patients <18 (cartilage damage) and >60 (tendon risk). Do not give with antacids/calcium/iron — reduces absorption by 50%. Also causes peripheral neuropathy and CNS effects."}},
+
+  {drug:"Ciprofloxacin",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Ciprofloxacin is prescribed for a 16-year-old patient with a serious infection. The nurse knows fluoroquinolones are generally avoided in patients under 18 because they may cause:",
+   choices:{A:"Increased nephrotoxicity in adolescents",B:"Cartilage damage and arthropathy in developing joints",C:"Reduced bioavailability requiring higher pediatric doses",D:"Cardiac QT prolongation only in young patients"},correct:"B",
+   rationale:{correct:"Fluoroquinolones impair cartilage development in growing joints (arthropathy was demonstrated in juvenile animals). Generally avoided under 18 except when no alternative exists (anthrax exposure, serious complicated infections).",
+   wrong:{A:"Nephrotoxicity is not the primary concern with fluoroquinolones.",C:"Bioavailability is not significantly altered in adolescents.",D:"QT prolongation risk exists in all ages, not just young patients."},
+   pearl:"Black Box: Tendon rupture and tendinitis (Achilles most common). Peripheral neuropathy. Avoid age <18 (cartilage), age >60 + steroids (tendon). Separate from antacids, calcium, iron, zinc by 2 hours. DOC for anthrax exposure, uncomplicated UTI, Pseudomonas, some respiratory infections."}},
+
+  // Doxycycline
+  {drug:"Doxycycline",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A patient with Lyme disease is prescribed an antibiotic that reversibly binds the 30S ribosomal subunit, blocking tRNA attachment and inhibiting protein synthesis in a bacteriostatic manner. Which drug class is this?",
+   choices:{A:"Macrolides — 50S ribosomal inhibitor",B:"Tetracyclines — 30S ribosomal inhibitor",C:"Fluoroquinolones — DNA gyrase inhibitor",D:"Carbapenems — cell wall inhibitor"},correct:"B",
+   rationale:{correct:"Tetracyclines (doxycycline) reversibly bind the 30S ribosomal subunit, blocking aminoacyl-tRNA entry into the A site, halting protein synthesis. They are bacteriostatic — they inhibit growth but don't kill directly.",
+   wrong:{A:"Macrolides (azithromycin) bind the 50S ribosomal subunit.",C:"Fluoroquinolones inhibit DNA gyrase — not ribosomal.",D:"Carbapenems inhibit cell wall synthesis — bactericidal."},
+   pearl:"TEETH STAINING (permanent, yellow-brown) in children under 8 and in fetuses. CONTRAINDICATED in pregnancy and children <8. Photosensitivity — use sunscreen. Take with food (unlike older tetracyclines). Avoid dairy/antacids — calcium chelation reduces absorption. Uses: acne, Lyme disease, chlamydia, malaria prophylaxis, MRSA skin infections."}},
+
+  {drug:"Doxycycline",module:"Module 3",topic:"Contraindication",showDrugName:true,
+   q:"Doxycycline is considered for a 6-year-old child with a tick-borne illness. The primary risk that makes this drug generally contraindicated in young children is:",
+   choices:{A:"Nephrotoxicity and electrolyte imbalance",B:"Permanent dental staining and enamel hypoplasia",C:"Seizures from CNS penetration",D:"Cardiac arrhythmias at therapeutic doses"},correct:"B",
+   rationale:{correct:"Tetracyclines chelate calcium and deposit in developing teeth and bones, causing permanent yellow-brown staining and enamel hypoplasia in children under 8 and in fetuses exposed in utero.",
+   wrong:{A:"Nephrotoxicity is not a primary concern with doxycycline at therapeutic doses.",C:"CNS seizures are not associated with doxycycline.",D:"Cardiac arrhythmias are not a known therapeutic dose complication of doxycycline."},
+   pearl:"Contraindicated in pregnancy (all trimesters) and children <8 (teeth/bones). Exception: Rocky Mountain Spotted Fever — benefits may outweigh risks even in young children due to disease severity. Take with food. No dairy or antacids (calcium chelation). Photosensitivity — wear sunscreen."}},
+
+  // Cotrimoxazole
+  {drug:"Cotrimoxazole",module:"Module 3",topic:"MOA",showDrugName:false,
+   q:"A patient with a UTI is given a sulfonamide that works by double-blocking bacterial folic acid synthesis. Bacteria cannot absorb folate from the environment and must synthesize it — humans absorb it from diet. What important side effect requires patient education?",
+   choices:{A:"Must drink large amounts of water to prevent crystalluria",B:"Must avoid sunlight to prevent severe burns",C:"Must avoid all dairy products during treatment",D:"Must take on a completely empty stomach"},correct:"A",
+   rationale:{correct:"Sulfonamides can precipitate in urine and form crystals (crystalluria), causing painful urination and potentially obstructing the urinary tract. Patients should drink at least 8 glasses of water daily during treatment.",
+   wrong:{B:"Photosensitivity exists but is not the critical fluid-related education point.",C:"Dairy avoidance is important for tetracyclines (calcium chelation) — not sulfonamides.",D:"Cotrimoxazole can be taken with food to reduce GI upset."},
+   pearl:"Drink lots of water to prevent crystalluria. Contraindicated in sulfa allergy — watch for SJS (Stevens-Johnson Syndrome) risk. Uses: UTI, otitis media, PCP pneumonia (HIV patients), Nocardia infections. Blocks folic acid synthesis at TWO steps: sulfamethoxazole (early) + trimethoprim (later). 'Sulfa' drugs — remember sulfa allergy cross-reactivity (furosemide, thiazides, some sulfonylureas)."}},
+
+  // MODULE 4: Heparin
+  {drug:"Heparin",module:"Module 4",topic:"MOA",showDrugName:false,
+   q:"A patient with a DVT is started on IV anticoagulation that works by binding antithrombin III, dramatically accelerating its inhibition of thrombin and Factor Xa. It prevents new clot formation but does NOT dissolve existing clots. Which drug is described?",
+   choices:{A:"Warfarin",B:"Apixaban",C:"Heparin",D:"Alteplase"},correct:"C",
+   rationale:{correct:"Heparin is an indirect thrombin inhibitor — it binds antithrombin III and causes a conformational change that accelerates its inhibition of thrombin (Factor IIa) and Factor Xa by 1000-fold. It prevents further thrombosis but does not lyse existing clots.",
+   wrong:{A:"Warfarin inhibits Vitamin K-dependent clotting factor synthesis (2,7,9,10).",B:"Apixaban directly inhibits Factor Xa without requiring antithrombin III.",D:"Alteplase is a thrombolytic — it dissolves existing clots via plasminogen activation."},
+   pearl:"Antidote: Protamine Sulfate. Monitor aPTT (therapeutic 1.5-2.5x normal). Watch for HIT (Heparin-Induced Thrombocytopenia) — platelet drop 5-10 days after starting. HIT = STOP heparin + start direct thrombin inhibitor (argatroban). HIT is paradoxically thrombotic despite low platelets."}},
+
+  {drug:"Heparin",module:"Module 4",topic:"Contraindication",showDrugName:true,
+   q:"A patient with a history of Heparin-Induced Thrombocytopenia (HIT) develops a new DVT. The nurse understands:",
+   choices:{A:"Low-dose SQ heparin is safe in patients with prior HIT",B:"Heparin is safe if the current platelet count is normal",C:"All forms of heparin are absolutely contraindicated lifelong",D:"Heparin contraindication expires after 6 months"},correct:"C",
+   rationale:{correct:"HIT is an immune-mediated reaction where antibodies form against heparin-PF4 complexes. Once a patient has HIT, ALL forms of heparin — IV, subcutaneous, LMWH, even catheter flushes — are absolutely contraindicated. There is no safe dose or form.",
+   wrong:{A:"No heparin form is safe in patients with HIT history — the reaction is antibody-mediated.",B:"Normal platelet count does not eliminate the risk — antibodies can still be present.",D:"HIT antibodies can persist for years — the contraindication is lifelong."},
+   pearl:"HIT: Platelet drop >50% after 5-10 days of heparin. PARADOXICAL THROMBOSIS (not bleeding). Stop ALL heparin immediately — even flushes. Switch to: argatroban or bivalirudin (direct thrombin inhibitors). Document prominently in the medical record. Protamine sulfate reverses unfractionated heparin."}},
+
+  // Warfarin
+  {drug:"Warfarin",module:"Module 4",topic:"MOA",showDrugName:false,
+   q:"A patient with A-fib is started on an oral anticoagulant that prevents carboxylation of clotting factors 2, 7, 9, and 10 by antagonizing a fat-soluble vitamin. Monitoring requires regular blood tests. Which drug is described?",
+   choices:{A:"Apixaban — Factor Xa inhibitor",B:"Clopidogrel — ADP receptor blocker",C:"Warfarin — Vitamin K antagonist",D:"Heparin — antithrombin III enhancer"},correct:"C",
+   rationale:{correct:"Warfarin inhibits Vitamin K epoxide reductase, preventing recycling of active Vitamin K. Vitamin K is required for carboxylation (activation) of clotting factors 2, 7, 9, and 10. Without active Vitamin K, these factors cannot be produced.",
+   wrong:{A:"Apixaban directly inhibits Factor Xa — does not affect Vitamin K.",B:"Clopidogrel is an antiplatelet blocking ADP receptors — not an anticoagulant.",D:"Heparin activates antithrombin III — not related to Vitamin K."},
+   pearl:"Antidote: Vitamin K (slow — 4-6 hours) or FFP (immediate). Monitor PT/INR (therapeutic 2-3). NARROW THERAPEUTIC INDEX — many drug/food interactions. Consistent Vitamin K intake is key. Contraindicated in pregnancy (crosses placenta — fetal hemorrhage/birth defects). Prefix: 'War' (remember: it's at WAR with Vitamin K)."}},
+
+  {drug:"Warfarin",module:"Module 4",topic:"Contraindication",showDrugName:true,
+   q:"A pregnant patient at 18 weeks needs anticoagulation for a DVT. Warfarin is avoided because:",
+   choices:{A:"It is not effective for DVT treatment",B:"It crosses the placenta, causing fetal hemorrhage and warfarin embryopathy",C:"INR monitoring is unreliable in pregnancy",D:"It interacts with prenatal vitamins reducing efficacy"},correct:"B",
+   rationale:{correct:"Warfarin crosses the placenta freely. In the 1st trimester it causes warfarin embryopathy (nasal hypoplasia, bone stippling). In 2nd/3rd trimesters it causes fetal hemorrhage. LMWH (enoxaparin) is the safe alternative — it does not cross the placenta.",
+   wrong:{A:"Warfarin IS effective for DVT — the issue is fetal safety, not efficacy.",C:"INR can be monitored in pregnancy — this is not the primary reason for avoidance.",D:"Minor vitamin interaction is not the contraindication rationale."},
+   pearl:"CONTRAINDICATED in pregnancy (Category X). Crosses placenta = fetal harm. Use LMWH (enoxaparin) in pregnancy — doesn't cross placenta. Monitor PT/INR in all patients. Antidote: Vitamin K. Warfarin is actually compatible with breastfeeding (per current evidence) unlike historical teaching."}},
+
+  // Alteplase
+  {drug:"Alteplase",module:"Module 4",topic:"MOA",showDrugName:false,
+   q:"A patient arrives with acute ischemic stroke. A drug is ordered that converts plasminogen to plasmin, which then dissolves fibrin clots. What is the absolute time window requirement for this drug?",
+   choices:{A:"Within 12 hours of symptom onset",B:"Within 3-4.5 hours of symptom onset",C:"Within 24 hours",D:"Must be given within 1 hour only"},correct:"B",
+   rationale:{correct:"Alteplase (tPA) must be given within 3-4.5 hours of ischemic stroke symptom onset. Beyond this window, the risk of hemorrhagic transformation outweighs benefit. The mechanism: tPA activates plasminogen to plasmin, which cleaves fibrin clots.",
+   wrong:{A:"12 hours far exceeds the evidence-based window for most patients.",C:"24 hours — hemorrhagic transformation risk is significantly elevated by this point.",D:"While sooner is better, the extended window is up to 3-4.5 hours, not 1 hour."},
+   pearl:"TIME IS BRAIN — every minute of stroke = ~1.9 million neurons lost. Door-to-needle goal: <60 minutes. Contraindications: recent surgery/trauma, intracranial hemorrhage, uncontrolled HTN (>185/110), active bleeding, anticoagulation. Used for: ischemic stroke, massive PE, STEMI. Suffix: -plase."}},
+
+  // Clopidogrel
+  {drug:"Clopidogrel",module:"Module 4",topic:"MOA",showDrugName:false,
+   q:"A patient post-coronary stent receives a drug that permanently blocks P2Y12 (ADP) receptors on platelets, preventing platelet activation. The patient asks how long before surgery this should be stopped. What is the answer?",
+   choices:{A:"24 hours",B:"3 days",C:"5 days",D:"10 days"},correct:"C",
+   rationale:{correct:"Clopidogrel irreversibly blocks P2Y12 ADP receptors on platelets. Since platelets have no nucleus, they cannot regenerate the receptor — the effect lasts the platelet's lifetime (~7-10 days). Stopping 5 days before surgery allows adequate recovery of platelet function.",
+   wrong:{A:"24 hours is insufficient — the drug's platelet effect is irreversible.",B:"3 days is insufficient platelet function recovery time.",D:"10 days is longer than necessary — 5 days is the standard recommendation."},
+   pearl:"Stop 5 days before surgery (aspirin: 7 days). Dual antiplatelet therapy (aspirin + clopidogrel) is standard after ACS/stent. Clopidogrel is a prodrug requiring CYP2C19 activation — poor metabolizers (genetic polymorphism) have reduced efficacy. Omeprazole inhibits CYP2C19 — reduces clopidogrel's antiplatelet effect."}},
+
+  // Epoetin Alfa
+  {drug:"Epoetin Alfa",module:"Module 4",topic:"MOA",showDrugName:false,
+   q:"A CKD patient with Hgb 8.2 g/dL is prescribed a drug that mimics endogenous erythropoietin, stimulating bone marrow erythroid progenitors to produce more red blood cells. Which hemoglobin level triggers the Black Box Warning for stroke risk?",
+   choices:{A:"Greater than 8 g/dL",B:"Greater than 9 g/dL",C:"Greater than 11 g/dL",D:"Greater than 13 g/dL"},correct:"C",
+   rationale:{correct:"Epoetin alfa (and darbepoetin) carry a Black Box Warning for increased risk of stroke, MI, and tumor progression when hemoglobin exceeds 11 g/dL. Target Hgb: 10-11 g/dL — do NOT over-treat.",
+   wrong:{A:"Hgb >8 is the typical threshold for considering ESA therapy — not the danger threshold.",B:"Hgb >9 is still below the danger threshold.",D:"Hgb >13 is too high a threshold — risks begin at >11 g/dL."},
+   pearl:"Target Hgb: 10-11 g/dL. Hgb >11 = increased stroke/MI/tumor progression risk. Uncontrolled HTN is a contraindication. Monitor blood pressure — can increase with ESA therapy. Used for: CKD anemia, chemotherapy-induced anemia, pre-surgical RBC augmentation."}},
+
+  // Filgrastim
+  {drug:"Filgrastim",module:"Module 4",topic:"Indication",showDrugName:true,
+   q:"Filgrastim (Neupogen) is ordered for a chemotherapy patient. The nurse understands this drug's primary purpose is to:",
+   choices:{A:"Stimulate red blood cell production to treat chemo-induced anemia",B:"Stimulate neutrophil production to reduce risk of febrile neutropenia",C:"Prevent thrombocytopenia by stimulating platelet precursors",D:"Reduce chemotherapy-induced nausea and vomiting"},correct:"B",
+   rationale:{correct:"Filgrastim is a granulocyte-colony stimulating factor (G-CSF) that stimulates bone marrow to produce and release neutrophils. It shortens the duration and severity of neutropenia after chemotherapy, reducing the risk of life-threatening infections.",
+   wrong:{A:"Epoetin alfa or darbepoetin alfa stimulate RBC production — not filgrastim.",C:"Oprelvekin (IL-11) stimulates platelet production — not filgrastim.",D:"Antiemetics (ondansetron) are used for chemotherapy-induced nausea."},
+   pearl:"BONE PAIN is the most common expected side effect — caused by rapid bone marrow expansion. Treat with acetaminophen. Suffix: -grastim. Do NOT use if neutropenia is from bone marrow cancer (may stimulate malignant cells). Monitor CBC and watch for splenomegaly with chronic use."}},
+
+  // Cyanocobalamin
+  {drug:"Cyanocobalamin",module:"Module 4",topic:"Indication",showDrugName:true,
+   q:"A patient is diagnosed with pernicious anemia. The nurse understands Cyanocobalamin must be given by which route for this specific condition?",
+   choices:{A:"Oral tablets daily",B:"Sublingual dissolving tablets",C:"IM injection for life",D:"IV infusion monthly"},correct:"C",
+   rationale:{correct:"Pernicious anemia is caused by autoimmune destruction of parietal cells → no intrinsic factor (IF) → oral B12 cannot be absorbed in the terminal ileum. IM injection bypasses GI absorption entirely, delivering B12 regardless of IF status.",
+   wrong:{A:"Oral B12 requires intrinsic factor — pernicious anemia patients cannot absorb it orally.",B:"Small amounts can absorb sublingually passively, but IM injection is the definitive treatment.",D:"IV B12 infusion is not the standard route — IM injection is preferred."},
+   pearl:"Pernicious anemia = no intrinsic factor → oral B12 useless → IM injection FOR LIFE. B12 deficiency causes: megaloblastic anemia + subacute combined degeneration of spinal cord (neuro symptoms — distinguishes it from folate deficiency which does NOT cause neurological symptoms). Monthly IM injections maintain adequate levels."}},
+
+  // MODULE 5: Donepezil
+  {drug:"Donepezil",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A patient with Alzheimer's disease is started on a drug that inhibits acetylcholinesterase, preventing breakdown of ACh in the synaptic cleft, temporarily improving cognitive function. At what time of day should this drug be administered?",
+   choices:{A:"With breakfast — improves morning cognition",B:"At bedtime — minimizes GI effects and vivid dreams",C:"Twice daily with meals",D:"Only during cognitive symptom exacerbations"},correct:"B",
+   rationale:{correct:"Donepezil is given once daily at bedtime (HS). This minimizes GI side effects (nausea, diarrhea) and any vivid dreams associated with increased cholinergic activity during sleep are less disruptive at night.",
+   wrong:{A:"Morning dosing increases daytime GI side effects and can disrupt sleep with vivid dreams.",C:"Donepezil has a long half-life (~70 hours) — once daily dosing is sufficient.",D:"Donepezil is taken continuously as maintenance — not episodically."},
+   pearl:"Give at BEDTIME (HS). Monitor HEART RATE — increased ACh can cause bradycardia. Treats symptoms only — does NOT slow disease progression. Also used in vascular dementia and Lewy body dementia. Other cholinesterase inhibitors: rivastigmine, galantamine. For severe Alzheimer's, add memantine (NMDA antagonist)."}},
+
+  // Levodopa-Carbidopa
+  {drug:"Levodopa-Carbidopa",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A Parkinson's patient is started on a combination drug — one component is a dopamine precursor that crosses the BBB, and the second prevents its peripheral conversion, reducing side effects. Which dietary factor must be separated from dosing times?",
+   choices:{A:"Foods high in sodium",B:"Foods high in protein (amino acids)",C:"Foods high in vitamin K",D:"Foods containing grapefruit"},correct:"B",
+   rationale:{correct:"Levodopa competes with large neutral amino acids (from dietary protein) for the same transport system across the blood-brain barrier. Taking the drug with high-protein meals significantly reduces the amount reaching the brain. Take on an empty stomach or with low-protein foods.",
+   wrong:{A:"Sodium does not compete with levodopa absorption.",C:"Vitamin K is relevant to warfarin — not levodopa.",D:"Grapefruit affects CYP3A4 enzyme substrates — not levodopa."},
+   pearl:"AVOID HIGH PROTEIN at dosing time — amino acids compete with levodopa for BBB transport. Carbidopa blocks peripheral decarboxylase — more levodopa reaches the brain, less peripheral side effects (nausea, hypotension). 'On-off' phenomenon: motor fluctuations with long-term use. Take on EMPTY STOMACH for best absorption. Contraindicated in narrow-angle glaucoma."}},
+
+  // Benztropine
+  {drug:"Benztropine",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A Parkinson's patient with prominent tremor is given an anticholinergic that blocks muscarinic receptors, restoring dopamine-acetylcholine balance in the basal ganglia. Which mnemonic represents its side effects?",
+   choices:{A:"'SLUDGE' — Salivation, Lacrimation, Urination, Defecation, GI upset, Emesis",B:"'Can't see, pee, spit, or s**t' — classic anticholinergic side effects",C:"'RED' — Rash, Edema, Dyspnea",D:"'HALT' — Hunger, Ataxia, Lethargy, Tachycardia"},correct:"B",
+   rationale:{correct:"Benztropine causes classic anticholinergic side effects: blurred vision (can't see — cycloplegia/mydriasis), urinary retention (can't pee), dry mouth (can't spit — decreased salivation), constipation (can't s**t — decreased GI motility).",
+   wrong:{A:"SLUDGE describes CHOLINERGIC excess effects — the OPPOSITE of benztropine (anticholinergic).",C:"RED is not a pharmacological mnemonic for anticholinergic drugs.",D:"HALT is not a recognized anticholinergic side effect mnemonic."},
+   pearl:"Anticholinergic side effects: blurred vision, urinary retention, dry mouth, constipation, tachycardia, confusion. CONTRAINDICATED in BPH (urinary retention risk) and glaucoma (increased IOP). Use with caution in elderly — can cause delirium. Most effective for tremor in Parkinson's — less effective for rigidity/bradykinesia."}},
+
+  // Phenytoin
+  {drug:"Phenytoin",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A patient with tonic-clonic seizures is started on a drug that stabilizes voltage-gated sodium channels in their inactive state, preventing repetitive neuronal firing. Therapeutic drug level must be monitored. What is a distinctive physical side effect of chronic use?",
+   choices:{A:"Hair loss and brittle nails",B:"Gingival hyperplasia (gum overgrowth)",C:"Yellow skin discoloration",D:"Peripheral pitting edema"},correct:"B",
+   rationale:{correct:"Phenytoin causes gingival hyperplasia (gum overgrowth) — a classic and distinctive side effect seen with chronic use. Good oral hygiene and regular dental visits are essential. Other side effects include hirsutism, acne, coarse facial features, and at toxic levels: nystagmus and ataxia.",
+   wrong:{A:"Hair loss is not a primary phenytoin side effect.",C:"Yellow skin discoloration is associated with digoxin toxicity or jaundice.",D:"Peripheral edema is not a typical phenytoin side effect."},
+   pearl:"GINGIVAL HYPERPLASIA = classic phenytoin (Dilantin). Therapeutic level: 10-20 mcg/mL. Zero-order kinetics at high doses — small dose increases cause large level jumps (toxicity risk). IV: give SLOWLY (<50 mg/min) — causes cardiac arrhythmias if rapid. Monitor: CBC, LFTs, drug levels. Drug interactions: induces CYP enzymes."}},
+
+  // Valproic Acid
+  {drug:"Valproic Acid",module:"Module 5",topic:"Contraindication",showDrugName:true,
+   q:"Valproic Acid is being considered for a patient with epilepsy. Which finding is an absolute contraindication?",
+   choices:{A:"History of mild depression",B:"Pregnancy — first trimester",C:"Concurrent use of acetaminophen",D:"Age over 65 with polypharmacy"},correct:"B",
+   rationale:{correct:"Valproic acid is teratogenic — causes neural tube defects (spina bifida), cognitive impairment, and other fetal malformations. It carries a Black Box Warning for fetal harm. Absolutely contraindicated in pregnancy, particularly the first trimester.",
+   wrong:{A:"Depression is not a contraindication — valproic acid is actually used for bipolar disorder.",C:"Acetaminophen interaction exists but is not an absolute contraindication.",D:"Age and polypharmacy increase monitoring needs but are not absolute contraindications."},
+   pearl:"BLACK BOX WARNINGS: Hepatotoxicity (especially in children under 2), pancreatitis, and fetal harm (neural tube defects). Monitor LFTs and serum levels (therapeutic 50-100 mcg/mL). BROAD SPECTRUM anticonvulsant — treats absence + tonic-clonic. Also: bipolar disorder, migraine prophylaxis. Drug of choice when multiple seizure types coexist."}},
+
+  // Ethosuximide
+  {drug:"Ethosuximide",module:"Module 5",topic:"Indication",showDrugName:true,
+   q:"A 9-year-old has brief episodes of staring blankly and blinking, occurring up to 50 times daily. EEG shows 3Hz spike-and-wave pattern. Which drug is the first-line treatment?",
+   choices:{A:"Phenytoin",B:"Carbamazepine",C:"Ethosuximide",D:"Diazepam"},correct:"C",
+   rationale:{correct:"These are classic absence (petit mal) seizures. Ethosuximide is the drug of choice — it depresses the motor cortex and reduces T-type calcium channel activity in the thalamus that generates the 3Hz spike-wave discharge.",
+   wrong:{A:"Phenytoin treats tonic-clonic and partial seizures — not effective for absence.",B:"Carbamazepine can actually WORSEN absence seizures — avoid.",D:"Diazepam treats acute/emergency seizures — not for chronic absence seizure prevention."},
+   pearl:"Ethosuximide = ONLY for absence seizures (petit mal). NOT effective for other seizure types. 3Hz spike-and-wave on EEG = absence epilepsy. Children often confused with daydreaming. Valproic acid is alternative if patient also has tonic-clonic seizures. Carbamazepine contraindicated in absence — may worsen it."}},
+
+  // Morphine
+  {drug:"Morphine",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A post-operative patient requires IV pain medication. A Mu-receptor agonist opioid is ordered. Before administration, the nurse must assess which vital sign parameter?",
+   choices:{A:"Blood pressure — hold if systolic <90 mmHg",B:"Respiratory rate — hold if less than 12 breaths/minute",C:"Temperature — hold if above 38.5°C",D:"Heart rate — hold if below 60 bpm"},correct:"B",
+   rationale:{correct:"Opioids cause CNS depression including respiratory depression. Respiratory rate less than 12 is a sign of significant respiratory depression — the drug should be held and the provider notified. Naloxone should be readily available.",
+   wrong:{A:"Blood pressure monitoring is important but respiratory rate is the critical parameter for opioid administration.",C:"Temperature is not an opioid-specific parameter.",D:"Heart rate monitoring is secondary to respiratory rate for opioid safety."},
+   pearl:"ALWAYS check RR before giving opioids — hold if <12 breaths/min. Antidote: NALOXONE (Narcan) — competitive Mu-receptor antagonist. Naloxone has shorter half-life than morphine — may need repeated doses. Also causes: constipation (start stool softener prophylactically), nausea, urinary retention, pruritus. Monitor pain relief and sedation level."}},
+
+  // Diazepam
+  {drug:"Diazepam",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A patient in status epilepticus receives a benzodiazepine that enhances GABA-A receptor activity, increasing the FREQUENCY of chloride channel opening and hyperpolarizing neurons. This is different from barbiturates which increase the DURATION. Which drug is being used?",
+   choices:{A:"Phenytoin",B:"Valproic acid",C:"Diazepam",D:"Ethosuximide"},correct:"C",
+   rationale:{correct:"Diazepam (benzodiazepine) binds the GABA-A receptor at the benzodiazepine site, enhancing GABA activity by increasing FREQUENCY of Cl- channel opening. This hyperpolarizes neurons and stops seizure activity. It is first-line for status epilepticus.",
+   wrong:{A:"Phenytoin stabilizes sodium channels — not GABA-mediated mechanism.",B:"Valproic acid increases GABA synthesis/activity but works by different mechanisms.",D:"Ethosuximide works on T-type calcium channels — not GABA-mediated."},
+   pearl:"HIGH ADDICTION RISK. Antidote: FLUMAZENIL. Contraindicated in sleep apnea. BZDs: increase FREQUENCY of Cl- channel opening (vs. barbiturates which increase DURATION). Used for: status epilepticus, alcohol withdrawal, anxiety, procedural sedation. Can cause respiratory depression — especially combined with opioids or alcohol."}},
+
+  // Apixaban
+  {drug:"Apixaban",module:"Module 5",topic:"MOA",showDrugName:false,
+   q:"A patient with A-fib needs stroke prevention. A direct oral anticoagulant (DOAC) is chosen that selectively inhibits Factor Xa and does NOT require INR monitoring. Which drug is described?",
+   choices:{A:"Warfarin — Vitamin K antagonist",B:"Heparin — antithrombin III enhancer",C:"Apixaban — direct Factor Xa inhibitor",D:"Clopidogrel — ADP receptor blocker"},correct:"C",
+   rationale:{correct:"Apixaban directly and reversibly inhibits Factor Xa, preventing conversion of prothrombin to thrombin. Its predictable pharmacokinetics means INR monitoring is NOT required — a major advantage over warfarin.",
+   wrong:{A:"Warfarin requires INR monitoring and has numerous interactions.",B:"Heparin is parenteral only and requires aPTT monitoring.",D:"Clopidogrel is an antiplatelet — not an anticoagulant."},
+   pearl:"NO INR monitoring required. Antidote: Andexanet alfa (Factor Xa inhibitor reversal agent — Vitamin K does NOT reverse apixaban). DOACs (apixaban, rivaroxaban, dabigatran) are replacing warfarin for A-fib, DVT, PE. Contraindicated in: active bleeding, prosthetic heart valves, severe renal impairment. Suffix: -xaban."}},
+
+  // MODULE 6: Lisinopril
+  {drug:"Lisinopril/Enalapril",module:"Module 6",topic:"MOA",showDrugName:false,
+   q:"A patient with HTN and HF is started on a drug that blocks conversion of Angiotensin I to Angiotensin II, reducing vasoconstriction and aldosterone secretion. A persistent dry cough develops. Why does this cough occur?",
+   choices:{A:"Direct bronchospasm from reduced angiotensin II",B:"Accumulation of bradykinin which is normally degraded by ACE",C:"Increased histamine release from mast cell activation",D:"Reflex bronchoconstriction from decreased blood pressure"},correct:"B",
+   rationale:{correct:"ACE normally degrades bradykinin. Blocking ACE causes bradykinin to accumulate in the lungs, which irritates airway sensory nerves and triggers a persistent dry, non-productive cough. This is the mechanism of ACE inhibitor cough.",
+   wrong:{A:"Angiotensin II does not cause bronchospasm directly.",C:"Histamine release is not the cough mechanism.",D:"Reflex bronchoconstriction from BP drop is not the mechanism."},
+   pearl:"DRY COUGH = ACE inhibitor side effect (bradykinin accumulation). Switch to ARB (no dry cough) if intolerable. HYPERKALEMIA risk (blocks aldosterone → retains K+). CONTRAINDICATED in pregnancy. ANGIOEDEMA — rare but life-threatening (stop drug, never rechallenge). Monitor: BMP, K+, creatinine. Suffix: -pril."}},
+
+  {drug:"Lisinopril/Enalapril",module:"Module 6",topic:"Contraindication",showDrugName:true,
+   q:"A pregnant patient at 20 weeks has hypertension. Lisinopril is contraindicated in pregnancy primarily because it causes:",
+   choices:{A:"Excessive maternal hypotension that cannot be managed",B:"Fetal renal damage, oligohydramnios, and limb contractures (ACE inhibitor fetopathy)",C:"Placental abruption through direct uterine effects",D:"Maternal hepatotoxicity risk in pregnancy"},correct:"B",
+   rationale:{correct:"ACE inhibitors in the 2nd and 3rd trimesters cause ACE inhibitor fetopathy: fetal renal tubular dysplasia (fetal kidneys need angiotensin II for development), oligohydramnios (reduced fetal urine production), neonatal renal failure, calvarial hypoplasia, and limb contractures.",
+   wrong:{A:"Maternal hypotension is a concern but not the primary fetotoxicity mechanism.",C:"Placental abruption is not the primary mechanism of harm.",D:"Maternal hepatotoxicity is not the primary concern with ACE inhibitors in pregnancy."},
+   pearl:"ACE inhibitors CONTRAINDICATED in ALL TRIMESTERS (especially 2nd/3rd for fetopathy). Safe alternatives for gestational HTN: methyldopa, labetalol, nifedipine. Angioedema risk: rare but life-threatening — stop immediately. Hyperkalemia risk — avoid with K-sparing diuretics or K+ supplements without monitoring."}},
+
+  // Digoxin
+  {drug:"Digoxin",module:"Module 6",topic:"MOA",showDrugName:false,
+   q:"A patient with HF and A-fib is on a cardiac glycoside that inhibits Na+/K+ ATPase, indirectly increasing intracellular calcium, strengthening contractions (positive inotrope) and slowing AV conduction (negative chronotrope). Low potassium dramatically increases risk of toxicity. Which drug is described?",
+   choices:{A:"Metoprolol",B:"Amiodarone",C:"Digoxin",D:"Diltiazem"},correct:"C",
+   rationale:{correct:"Digoxin inhibits Na+/K+ ATPase → intracellular Na+ increases → Na+/Ca2+ exchanger is inhibited → intracellular Ca2+ increases → stronger contractions. It also increases vagal tone to slow AV node conduction. Low K+ means less competition for Na+/K+ pump binding → increased digoxin effect = toxicity.",
+   wrong:{A:"Metoprolol is a beta-blocker that slows HR and reduces contractility through beta-1 blockade.",B:"Amiodarone is a K+ channel blocker that prolongs action potential.",D:"Diltiazem is a calcium channel blocker."},
+   pearl:"YELLOW-GREEN HALOS = digoxin toxicity (xanthopsia). Check apical pulse 1 full minute — hold if <60 bpm. Therapeutic level: 0.5-2 ng/mL. LOW K+ = INCREASED digoxin toxicity. Antidote: Digibind (digoxin immune Fab). Toxicity signs: N/V, visual changes, bradycardia, dysrhythmias."}},
+
+  // Metoprolol
+  {drug:"Metoprolol",module:"Module 6",topic:"MOA",showDrugName:false,
+   q:"A diabetic patient on insulin is started on a selective beta-1 blocker for HF. The nurse identifies a critical drug-disease interaction. This drug will:",
+   choices:{A:"Increase blood glucose by stimulating hepatic gluconeogenesis",B:"Mask the tachycardia warning sign of hypoglycemia in diabetics",C:"Block insulin receptor signaling, reducing glucose uptake",D:"Directly lower blood glucose causing hypoglycemia"},correct:"B",
+   rationale:{correct:"Beta-blockers block beta-2 adrenergic receptors that mediate sympathetic tachycardia in response to hypoglycemia. Without this warning sign, diabetics may not recognize hypoglycemia until they lose consciousness. Sweating (mediated by ACh, not adrenergic) is preserved.",
+   wrong:{A:"Beta-blockers do not significantly stimulate hepatic gluconeogenesis.",C:"Beta-blockers do not block insulin receptors.",D:"Beta-blockers do not directly cause hypoglycemia."},
+   pearl:"'Masks hypoglycemia tachycardia' — critical teaching for diabetics on beta-blockers. SWEATING IS PRESERVED (cholinergic mediated). Do NOT abruptly stop — rebound hypertension and angina (taper over 1-2 weeks). Contraindicated in: asthma (beta-2 blockade = bronchospasm), bradycardia, 2nd/3rd degree heart block. Suffix: -olol."}},
+
+  // Nitroglycerin
+  {drug:"Nitroglycerin",module:"Module 6",topic:"Contraindication",showDrugName:true,
+   q:"A patient with chest pain requests their Nitroglycerin. The nurse must first ask about concurrent use of which medication, as the combination causes life-threatening hypotension?",
+   choices:{A:"Metformin",B:"Sildenafil (Viagra) or other PDE-5 inhibitors",C:"Atorvastatin",D:"Lisinopril"},correct:"B",
+   rationale:{correct:"Both nitroglycerin (nitric oxide → cGMP → vasodilation) and PDE-5 inhibitors (block cGMP breakdown → vasodilation) cause vasodilation by different mechanisms. The combination creates additive, potentially fatal hypotension. If PDE-5 inhibitor taken within 24-48 hours, nitroglycerin is contraindicated.",
+   wrong:{A:"Metformin does not affect vasodilation.",C:"Statins don't cause vasodilation — no dangerous interaction.",D:"Lisinopril may mildly lower BP but not to the severe degree of PDE-5 inhibitor combination."},
+   pearl:"NTG + Viagra/Cialis = SEVERE HYPOTENSION — contraindicated. Storage: dark glass bottle, cool dry place, replace every 6 months. HEADACHE is expected (cerebral vasodilation). SL dosing: 1 tab every 5 min x3 — if no relief, call 911. Tolerance with continuous use — need 10-12 hour patch-free period daily."}},
+
+  // Atorvastatin
+  {drug:"Atorvastatin",module:"Module 6",topic:"MOA",showDrugName:false,
+   q:"A patient with hyperlipidemia is started on a drug that inhibits HMG-CoA reductase, blocking the rate-limiting step in hepatic cholesterol synthesis and upregulating LDL receptors. Cola-colored urine would indicate a life-threatening side effect. What is this complication?",
+   choices:{A:"Renal tubular acidosis",B:"Rhabdomyolysis with myoglobinuria",C:"Cholestatic jaundice",D:"Hemolytic anemia"},correct:"B",
+   rationale:{correct:"Statins can cause rhabdomyolysis — widespread skeletal muscle breakdown. Myoglobin from destroyed muscle is released into the bloodstream, filtered by kidneys, and turns urine cola-brown. This can cause acute renal failure. Report muscle pain, weakness, or dark urine immediately.",
+   wrong:{A:"Renal tubular acidosis is not a known statin complication.",C:"Cholestatic jaundice is not a primary statin complication — hepatotoxicity can occur but presents differently.",D:"Hemolytic anemia is not associated with statins."},
+   pearl:"RHABDOMYOLYSIS — severe muscle pain + weakness + dark (cola-colored) urine = STOP statin immediately. Check CK level. Risk increases with: high dose, grapefruit juice (inhibits CYP3A4), concurrent fibrates. Contraindicated in pregnancy (Category X) and active liver disease. Suffix: -statin."}},
+
+  // Adenosine
+  {drug:"Adenosine",module:"Module 6",topic:"MOA",showDrugName:true,
+   q:"A patient with SVT (HR 220 bpm) is about to receive Adenosine. The nurse knows the critical administration requirement is:",
+   choices:{A:"Dilute in 250mL NS and infuse over 20 minutes",B:"Rapid IV push over 1-2 seconds followed immediately by a saline flush",C:"Administer IM in the deltoid",D:"Mix with lidocaine and give slowly"},correct:"B",
+   rationale:{correct:"Adenosine has an extremely short half-life of ~10 seconds — it is rapidly metabolized by erythrocytes. It MUST be given as a rapid IV bolus (1-2 seconds) followed immediately by a rapid saline flush to ensure it reaches the heart before degradation.",
+   wrong:{A:"Slow infusion completely degrades adenosine before it reaches the heart — ineffective.",C:"IM administration results in complete degradation — adenosine cannot be given IM.",D:"Mixing with other drugs dilutes it further and delays delivery."},
+   pearl:"RAPID IV PUSH — half-life ~10 seconds. Terminates re-entrant SVT by briefly blocking AV node. Patient WILL feel their heart stop momentarily (warn them). Causes brief: flushing, chest tightness, sense of doom — EXPECTED, transient. Contraindicated in: heart block, WPW syndrome, asthma (bronchospasm). Record rhythm during administration."}},
+
+  // Amiodarone
+  {drug:"Amiodarone",module:"Module 6",topic:"Contraindication",showDrugName:true,
+   q:"Before starting Amiodarone for ventricular tachycardia, the nurse identifies a critical allergy. Which allergy is most relevant?",
+   choices:{A:"Penicillin allergy",B:"Sulfa drug allergy",C:"Iodine allergy",D:"Aspirin allergy"},correct:"C",
+   rationale:{correct:"Amiodarone contains approximately 37% iodine by weight. It can trigger thyroid dysfunction in any patient (hypo or hyperthyroidism) and poses additional risks in patients with iodine allergy, including potential severe hypersensitivity reactions.",
+   wrong:{A:"PCN allergy is unrelated to amiodarone.",B:"Sulfa allergy relates to sulfonamide antibiotics and some diuretics — not amiodarone.",D:"Aspirin allergy is related to COX inhibition — not relevant to amiodarone."},
+   pearl:"Amiodarone side effects: Pulmonary toxicity (most serious — monitor CXR and LFTs regularly), thyroid dysfunction (hypo or hyper), corneal microdeposits (visual halos), photosensitivity (blue-grey skin), hepatotoxicity. LONG half-life (40-55 days) — side effects persist long after stopping. Multiple drug interactions (warfarin, digoxin levels increase). Iodine allergy = critical to assess."}},
+
+  // MODULE 7: Albuterol
+  {drug:"Albuterol",module:"Module 7",topic:"MOA",showDrugName:false,
+   q:"A patient has an acute asthma attack with severe wheezing. An inhaled drug is given that binds beta-2 receptors in airway smooth muscle, increasing cAMP and causing rapid bronchodilation. This is the rescue inhaler. Which drug is this?",
+   choices:{A:"Ipratropium",B:"Fluticasone",C:"Montelukast",D:"Albuterol"},correct:"D",
+   rationale:{correct:"Albuterol is a SABA (Short-Acting Beta-2 Agonist) that stimulates beta-2 receptors → adenylyl cyclase activation → increased cAMP → smooth muscle relaxation → bronchodilation. Onset: 5-15 minutes. Duration: 4-6 hours.",
+   wrong:{A:"Ipratropium blocks muscarinic receptors — used for COPD maintenance, not acute rescue.",B:"Fluticasone is an inhaled corticosteroid for long-term control — too slow for acute attack.",C:"Montelukast blocks leukotriene receptors for maintenance — onset too slow."},
+   pearl:"RESCUE INHALER — for acute attacks ONLY. Expected side effects: tremors, jitteriness, tachycardia (some beta-1 activity). Using rescue inhaler >2 days/week = asthma is NOT controlled → add controller medication (ICS). Hypokalemia with high doses (beta-2 drives K+ into cells). Contraindicated with dysrhythmias."}},
+
+  {drug:"Albuterol",module:"Module 7",topic:"Contraindication",showDrugName:true,
+   q:"A patient with asthma has a new diagnosis of a supraventricular tachycardia. The nurse exercises caution with Albuterol because:",
+   choices:{A:"It decreases respiratory rate, risking respiratory failure",B:"Its beta-1 activity can cause tachycardia and worsen arrhythmias",C:"It increases mucus production, worsening airway obstruction",D:"It causes vasoconstriction and hypertension"},correct:"B",
+   rationale:{correct:"Albuterol has some beta-1 adrenergic activity in addition to beta-2 bronchodilation. This can cause tachycardia and palpitations, potentially worsening pre-existing tachyarrhythmias.",
+   wrong:{A:"Albuterol causes bronchodilation — it does not depress respiration.",C:"Albuterol does not increase mucus production.",D:"Albuterol causes vasodilation (beta-2) — not vasoconstriction."},
+   pearl:"Rescue only — PRN, not scheduled. Tremors and palpitations = expected. Overuse = poor asthma control = need step-up therapy with ICS (inhaled corticosteroid). Hypokalemia with high doses. If using >2 days/week = step up therapy. MDI technique: shake, exhale, inhale slowly, hold 10 seconds."}},
+
+  // Ipratropium
+  {drug:"Ipratropium",module:"Module 7",topic:"MOA",showDrugName:false,
+   q:"A COPD patient on maintenance therapy uses an anticholinergic inhaler that blocks M3 muscarinic receptors in airway smooth muscle, reducing bronchoconstriction and secretions. This is NOT a rescue inhaler. The nurse checks the patient's allergy history for which allergen?",
+   choices:{A:"Latex allergy",B:"Penicillin allergy",C:"Soy or peanut allergy",D:"Shellfish allergy"},correct:"C",
+   rationale:{correct:"Some ipratropium formulations (older Atrovent MDI) used soy lecithin as a propellant. Patients with soy or peanut allergies (cross-reactivity exists) should be assessed before use, particularly with the older formulations.",
+   wrong:{A:"Latex allergy is not specifically relevant to ipratropium.",B:"Penicillin allergy has no cross-reactivity with ipratropium.",D:"Shellfish allergy is relevant to iodine contrast — not ipratropium."},
+   pearl:"Ipratropium = MAINTENANCE, NOT RESCUE. Suffix: -tropium. Combined with albuterol as Combivent or DuoNeb for COPD exacerbations. Anticholinergic side effects are minimal (inhaled, not systemic): dry mouth, metallic taste. Blurred vision if sprayed in eyes. First-line maintenance for COPD."}},
+
+  // Guaifenesin
+  {drug:"Guaifenesin",module:"Module 7",topic:"MOA",showDrugName:false,
+   q:"A patient with a productive cough and thick mucus is given an expectorant that reduces the viscosity of bronchial secretions, making them easier to expectorate. Which patient education point is most important?",
+   choices:{A:"Take on an empty stomach for best effect",B:"Drink adequate fluids (8+ glasses/day) to help thin mucus",C:"Avoid dairy products during use",D:"Use only at bedtime to prevent daytime drowsiness"},correct:"B",
+   rationale:{correct:"Guaifenesin reduces mucus viscosity by increasing respiratory tract fluid secretions. Its effectiveness is dramatically enhanced when patients maintain adequate hydration — water helps keep secretions thin and easier to cough up.",
+   wrong:{A:"Guaifenesin can be taken with or without food.",C:"Dairy avoidance is not necessary with guaifenesin.",D:"Guaifenesin can be taken any time of day — it does not cause drowsiness."},
+   pearl:"DRINK WATER — hydration enhances guaifenesin's effect. Available OTC in many cough/cold preparations. Does NOT suppress the cough reflex (unlike dextromethorphan or codeine). Indicated for PRODUCTIVE cough only — if cough is non-productive or dry, expectorant is not needed. Monitor: if cough persists >1 week, evaluate for underlying cause."}},
+
+  // MODULE 8: Furosemide
+  {drug:"Furosemide",module:"Module 8",topic:"MOA",showDrugName:false,
+   q:"A patient with acute decompensated HF has severe pulmonary edema and anasarca. A loop diuretic is given that blocks Na+/K+/2Cl- cotransport in the thick ascending Loop of Henle, producing large amounts of urine rapidly. Which electrolyte must be monitored most closely?",
+   choices:{A:"Potassium — risk of hypokalemia",B:"Calcium — risk of hypercalcemia",C:"Phosphorus — risk of hyperphosphatemia",D:"Magnesium — risk of hypermagnesemia"},correct:"A",
+   rationale:{correct:"Furosemide blocks Na+/K+/2Cl- cotransport, preventing potassium reabsorption in the Loop of Henle. This results in significant potassium wasting (hypokalemia). Hypokalemia can cause muscle cramps, weakness, and dangerous arrhythmias.",
+   wrong:{B:"Furosemide actually INCREASES calcium excretion — it can cause hypocalcemia, not hypercalcemia.",C:"Phosphorus is not the primary electrolyte concern with loop diuretics.",D:"Furosemide wastes magnesium (hypomagnesemia) — but hypokalemia is the most critical concern."},
+   pearl:"K+ WASTING — monitor for hypokalemia (muscle cramps, weakness, EKG changes: U-waves). LOW K+ + DIGOXIN = increased digoxin toxicity risk. Ototoxicity risk with high IV doses (infuse slowly). Sulfa allergy cross-reactivity possible. First-line for acute pulmonary edema. Onset IV: 5 min. Monitor daily weights, urine output, BMP."}},
+
+  {drug:"Furosemide",module:"Module 8",topic:"Contraindication",showDrugName:true,
+   q:"Furosemide 40mg IV is ordered for acute decompensated HF. Which finding requires holding the medication and notifying the provider?",
+   choices:{A:"Serum sodium 138 mEq/L",B:"Potassium 3.1 mEq/L in a patient on digoxin",C:"BUN 22 mg/dL",D:"Creatinine 1.0 mg/dL"},correct:"B",
+   rationale:{correct:"Potassium 3.1 mEq/L is already hypokalemic. Furosemide will further reduce K+. In a patient on digoxin, hypokalemia significantly increases digoxin toxicity risk — K+ competes with digoxin at the Na+/K+ ATPase pump. K+ replacement is needed before or concurrent with diuresis.",
+   wrong:{A:"Sodium 138 is normal — no concern.",C:"BUN 22 is within normal limits.",D:"Creatinine 1.0 is normal."},
+   pearl:"Anuria is an absolute contraindication (nothing to diurese). Loop diuretics FLUSH K+. Give IV slowly to avoid ototoxicity. First-line for pulmonary edema — onset 5 minutes IV. Combine with K+ supplement or K+-sparing diuretic to prevent hypokalemia. Low K+ + digoxin = toxicity."}},
+
+  // Spironolactone
+  {drug:"Spironolactone",module:"Module 8",topic:"MOA",showDrugName:false,
+   q:"A patient with cirrhosis and ascites is started on a potassium-sparing diuretic that blocks aldosterone receptors in the collecting duct, increasing sodium/water excretion while retaining potassium. Which electrolyte imbalance is the primary risk?",
+   choices:{A:"Hypokalemia from potassium depletion",B:"Hyperkalemia from potassium retention",C:"Hyponatremia from sodium retention",D:"Hypercalcemia from calcium retention"},correct:"B",
+   rationale:{correct:"Spironolactone blocks aldosterone, which normally causes Na+ reabsorption and K+ excretion. Blocking it reverses this: Na+/water are excreted, K+ is RETAINED — risk of hyperkalemia. Peaked T-waves on EKG are an early sign.",
+   wrong:{A:"Spironolactone RETAINS K+ — hypokalemia is the risk with loop and thiazide diuretics.",C:"Spironolactone causes sodium excretion — not retention.",D:"Calcium is not significantly affected by spironolactone."},
+   pearl:"Watch for HYPERKALEMIA — monitor K+ and EKG (peaked T-waves = early sign of hyperK+). Contraindicated with ACE inhibitors/ARBs + K+ supplements (triple risk for hyperkalemia). Gynecomastia in men (anti-androgenic effect). Uses: HTN, cirrhotic ascites, HF, primary hyperaldosteronism. POTASSIUM-SPARING — spares K+."}},
+
+  // Mannitol
+  {drug:"Mannitol",module:"Module 8",topic:"Indication",showDrugName:true,
+   q:"A patient with severe TBI has signs of increased ICP. Mannitol is ordered. Which administration precaution is critical for this drug?",
+   choices:{A:"Mix with normal saline before administration",B:"Use a filter needle — mannitol crystallizes in solution",C:"Warm the solution to body temperature before infusing",D:"Administer via small peripheral IV only"},correct:"B",
+   rationale:{correct:"Mannitol crystallizes in solution, especially at lower temperatures. A filter needle must be used for IV administration to prevent crystal injection into the patient's bloodstream. This is a critical safety measure.",
+   wrong:{A:"Mannitol should NOT be mixed with other solutions — it can cause precipitation.",C:"While warming may help dissolve crystals, the filter needle is the essential safety step.",D:"Mannitol requires a large-bore IV (it is hypertonic) — a small peripheral IV is not appropriate."},
+   pearl:"USE FILTER NEEDLE — crystallizes in solution. Contraindicated in: dehydration (worsens hyperosmolarity), anuria, active intracranial hemorrhage. Monitor serum osmolality — stop if >320 mOsm/kg (risk of renal failure). Works by creating osmotic gradient that draws fluid from brain tissue into vasculature. Used for: increased ICP, acute glaucoma."}},
+
+  // Finasteride
+  {drug:"Finasteride",module:"Module 8",topic:"MOA",showDrugName:false,
+   q:"A male patient with BPH is prescribed a drug that inhibits 5-alpha reductase, blocking testosterone → DHT conversion. DHT is responsible for prostate growth. A critical safety instruction involves pregnant household members. Why?",
+   choices:{A:"The drug interacts with calcium supplements they may take",B:"It is teratogenic — pregnant women must not handle crushed/broken tablets",C:"Vapors from the drug can affect fetal development",D:"Shared bathroom use transmits the drug through contact"},correct:"B",
+   rationale:{correct:"Finasteride is teratogenic — it can cause feminization of a male fetus (ambiguous genitalia, hypospadias). Pregnant women or women of childbearing age must NEVER handle crushed or broken finasteride tablets. Intact tablets have a protective coating but caution is still advised.",
+   wrong:{A:"There is no significant calcium interaction.",C:"There is no inhalation exposure risk from intact tablets.",D:"Normal household contact does not transmit the drug."},
+   pearl:"TERATOGENIC — pregnant women must not handle crushed tablets. Takes 3-6 MONTHS for full BPH effect. Also used for male pattern baldness (lower dose, 1mg vs 5mg for BPH). PSA levels are HALVED by finasteride — adjust prostate cancer screening interpretation. Suffix: -eride."}},
+
+  // Tamsulosin
+  {drug:"Tamsulosin",module:"Module 8",topic:"MOA",showDrugName:false,
+   q:"A BPH patient with poor urine flow is started on a drug that selectively blocks alpha-1 receptors in the prostate and bladder neck smooth muscle, improving urine flow within days. A critical first-dose side effect must be discussed. What is it?",
+   choices:{A:"Severe tachycardia requiring cardiac monitoring",B:"Orthostatic hypotension and dizziness especially with first dose",C:"Acute urinary retention from increased bladder neck tone",D:"Significant hepatotoxicity requiring baseline LFTs"},correct:"B",
+   rationale:{correct:"Alpha-1 blockade not only relaxes prostate smooth muscle but also causes vasodilation (alpha-1 receptors in blood vessels). This produces orthostatic hypotension and dizziness, especially with the first dose. Patients should take it at bedtime initially to reduce fall risk.",
+   wrong:{A:"Tamsulosin causes reflex tachycardia, not primary severe tachycardia.",C:"Tamsulosin RELAXES bladder neck — it relieves, not causes, urinary retention.",D:"Hepatotoxicity is not a known significant tamsulosin complication."},
+   pearl:"FIRST-DOSE EFFECT — dizziness/orthostatic hypotension. Take at bedtime initially. FAST effect (days) vs finasteride (months). Suffix: -osin. Intraoperative Floppy Iris Syndrome (IFIS) — warn ophthalmologist before eye surgery. Often combined with finasteride for dual BPH management."}},
+
+  // MODULE 9: Metformin
+  {drug:"Metformin",module:"Module 9",topic:"MOA",showDrugName:false,
+   q:"A patient with type 2 diabetes is started on first-line oral therapy that decreases hepatic glucose production via AMPK activation and improves peripheral insulin sensitivity. It does NOT cause hypoglycemia. An imaging procedure is planned for next week. What must be done?",
+   choices:{A:"Hold for 24 hours after the procedure only",B:"Hold 48 hours before AND after IV contrast administration",C:"No hold necessary if patient's creatinine is normal",D:"Switch to insulin permanently before the procedure"},correct:"B",
+   rationale:{correct:"Metformin must be held 48 hours before and after IV contrast dye administration. Contrast can cause contrast-induced nephropathy (AKI). Metformin is renally cleared — with AKI, metformin accumulates and can cause life-threatening lactic acidosis.",
+   wrong:{A:"Holding only after is insufficient — must hold before as well.",C:"Even with normal creatinine, guidelines recommend holding 48 hours — contrast can acutely reduce GFR.",D:"Permanent insulin switch is not necessary — restart metformin 48 hours after contrast if renal function remains stable."},
+   pearl:"HOLD 48 hours before/after IV contrast. Also hold with: renal failure (GFR<30), surgery/anesthesia, acute illness, heavy alcohol use, liver failure. Lactic acidosis is rare but has 50% mortality. GI side effects (nausea, diarrhea) — take with food. First-line T2DM. Weight-neutral to weight-reducing. No hypoglycemia risk alone."}},
+
+  // Levothyroxine
+  {drug:"Levothyroxine",module:"Module 9",topic:"Indication",showDrugName:true,
+   q:"A patient newly started on Levothyroxine for hypothyroidism asks when they will feel better. The nurse's best response is:",
+   choices:{A:"You should feel completely better within 1-2 days",B:"Full therapeutic effect takes 4-8 weeks due to T4's long half-life",C:"Take with breakfast for fastest absorption",D:"Stop taking if you feel heart palpitations — this indicates an overdose"},correct:"B",
+   rationale:{correct:"Levothyroxine (T4) has a half-life of ~7 days. Full therapeutic effect and stabilization of TSH takes 4-8 weeks. Patients need education to avoid premature dose adjustment or discontinuation.",
+   wrong:{A:"1-2 days is far too early — T4 has a long half-life and requires weeks to reach steady state.",C:"Levothyroxine should be taken on an EMPTY STOMACH — food reduces absorption by 30-40%.",D:"Some mild palpitations during titration may be expected — contact provider, but this alone is not a reason to abruptly stop."},
+   pearl:"EMPTY STOMACH — 30-60 min before breakfast. Calcium, iron, antacids REDUCE absorption — separate by 4 hours. Takes 8 WEEKS for full effect — check TSH then. Life-long therapy for hypothyroidism. Monitor TSH to titrate. Contraindicated in: acute MI, uncorrected adrenal insufficiency. Start low, go slow (especially elderly/cardiac patients)."}},
+
+  // PTU/Methimazole
+  {drug:"PTU/Methimazole",module:"Module 9",topic:"MOA",showDrugName:false,
+   q:"A patient with Graves' disease (hyperthyroidism) is started on antithyroid therapy. The drug blocks T3/T4 synthesis by inhibiting thyroid peroxidase. A life-threatening complication of undertreated or poorly managed hyperthyroidism must be monitored. What is it?",
+   choices:{A:"Myxedema coma from hypothyroid crisis",B:"Thyroid storm — severe thyrotoxic crisis",C:"Addisonian crisis from adrenal suppression",D:"Pheochromocytoma crisis from catecholamine surge"},correct:"B",
+   rationale:{correct:"Thyroid storm (thyrotoxic crisis) is a life-threatening emergency from uncontrolled hyperthyroidism — extreme tachycardia, hyperthermia, altered mental status, and multi-organ failure. Inadequate antithyroid treatment or triggers (surgery, infection, stress) can precipitate it.",
+   wrong:{A:"Myxedema coma is a hypothyroid crisis — the opposite extreme.",C:"Adrenal suppression is not directly caused by antithyroid drugs.",D:"Pheochromocytoma is an adrenal tumor with catecholamine excess — unrelated to thyroid."},
+   pearl:"Monitor for THYROID STORM — tachycardia, hyperthermia, agitation, confusion = emergency. Agranulocytosis is a serious PTU/Methimazole side effect — stop drug immediately if fever/sore throat develops (get CBC). PTU preferred in 1st trimester pregnancy. Methimazole preferred otherwise. Both block thyroid peroxidase → reduce T3/T4 synthesis."}},
+
+  // Regular Insulin
+  {drug:"Regular Insulin",module:"Module 9",topic:"Indication",showDrugName:true,
+   q:"A patient is in DKA and requires an insulin infusion. The nurse correctly uses Regular Insulin. Which statement about Regular Insulin is critically important?",
+   choices:{A:"It is the only insulin that can be given intravenously",B:"It has no peak making it ideal for IV drips",C:"It must be mixed with NPH before IV administration",D:"It requires a filter needle due to crystallization risk"},correct:"A",
+   rationale:{correct:"Regular insulin is the ONLY insulin formulation approved for IV administration. All other insulins (NPH, lispro, aspart, glargine, detemir) are SUBCUTANEOUS ONLY. Giving other insulins IV can cause severe adverse effects.",
+   wrong:{B:"Regular insulin DOES have a peak (2-4 hours). Glargine (Lantus) is the peakless insulin.",C:"Regular insulin should NEVER be mixed with glargine. Regular CAN be mixed with NPH but not for IV use.",D:"Filter needles are for mannitol (crystallizes) — not insulin."},
+   pearl:"Regular insulin = ONLY insulin given IV. Clear solution. Onset 30-60 min (SQ), Peak 2-4 hr, Duration 6-8 hr. IV use: DKA, hyperkalemia (drives K+ into cells). Mixing order: 'clear before cloudy' (Regular first, then NPH). Monitor glucose and K+ closely. ONLY insulin given IV — this is a classic NCLEX question."}},
+
+  // Glucagon
+  {drug:"Glucagon",module:"Module 9",topic:"Indication",showDrugName:true,
+   q:"A diabetic patient on insulin is found unconscious with glucose of 28 mg/dL. No IV access can be established. The appropriate intervention is:",
+   choices:{A:"Oral glucose gel via mouth",B:"Glucagon IM or SQ injection",C:"Regular insulin to prevent glucose fluctuations",D:"Wait for IV access before treating"},correct:"B",
+   rationale:{correct:"For an unconscious, severely hypoglycemic patient without IV access, Glucagon IM/SQ is the correct intervention. It stimulates hepatic glycogenolysis and gluconeogenesis, raising blood glucose without needing IV access. Oral glucose is never given to unconscious patients (aspiration risk).",
+   wrong:{A:"Never give anything orally to an unconscious patient — aspiration and airway obstruction risk.",C:"Insulin would WORSEN severe hypoglycemia — never appropriate here.",D:"Delay in treating severe hypoglycemia causes irreversible brain damage — glucagon IM is available immediately."},
+   pearl:"Glucagon for UNCONSCIOUS severe hypoglycemia when no IV access. Requires adequate hepatic glycogen stores — may not work in: prolonged starvation, alcoholic liver disease, adrenal insufficiency. After recovery: give oral carbohydrates to prevent recurrence. Side effect on recovery: nausea/vomiting. Also used as antidote for beta-blocker overdose."}},
+
+  // MODULE 10: Lactulose
+  {drug:"Lactulose",module:"Module 10",topic:"MOA",showDrugName:false,
+   q:"A cirrhotic patient develops confusion, asterixis (flapping tremor), and elevated serum ammonia (hepatic encephalopathy). A drug is prescribed that acidifies the colon, trapping ammonia as non-absorbable ammonium ion for fecal excretion. What is the GOAL of this treatment?",
+   choices:{A:"Normalizing serum liver enzymes",B:"Achieving 2-3 soft stools per day and improved mental status",C:"Increasing urinary ammonia excretion",D:"Stimulating bile production to detoxify ammonia"},correct:"B",
+   rationale:{correct:"Lactulose is metabolized by colonic bacteria to organic acids, lowering pH and converting NH3 (absorbable, crosses to brain) to NH4+ (non-absorbable, excreted in feces). Goal: 2-3 soft stools/day to achieve ammonia reduction and improved mental status.",
+   wrong:{A:"Lactulose does not directly improve liver enzymes.",C:"Ammonia is trapped in stool — NOT excreted via urine.",D:"Lactulose is not a choleretic — it does not stimulate bile."},
+   pearl:"GOAL = improved mental status (not just bowel movement). Target 2-3 soft stools/day. Too much = severe diarrhea, dehydration, electrolyte imbalance. Contraindicated in galactosemia. Also used as osmotic laxative for constipation. Sweet taste — can mix with juice for better tolerance. Monitor for dehydration."}},
+
+  // Omeprazole
+  {drug:"Omeprazole",module:"Module 10",topic:"MOA",showDrugName:false,
+   q:"A patient with GERD is prescribed a drug that irreversibly inhibits the H+/K+ ATPase proton pump in parietal cells, blocking the final step of acid secretion regardless of what stimulus triggered it. This drug is a prodrug requiring acid activation. For maximum efficacy, when should it be taken?",
+   choices:{A:"Immediately after meals — to neutralize existing acid",B:"At bedtime — to suppress nocturnal secretion",C:"30-60 minutes before the first meal of the day",D:"With antacids — for additive acid suppression"},correct:"C",
+   rationale:{correct:"PPIs are prodrugs that require acidic activation in the parietal cell secretory canaliculus. They must be present when proton pumps are most active — during meal-stimulated acid secretion. Taking 30-60 minutes before breakfast ensures maximum pump activation and inhibition.",
+   wrong:{A:"After meals, many pumps have already been activated and acid secreted — PPI misses peak activity.",B:"At bedtime, few pumps are active without meal stimulation — less effective for daytime GERD.",D:"Antacids neutralize existing acid; PPIs prevent production. Taking them together is possible but antacids can reduce PPI absorption if taken at the same time."},
+   pearl:"Take 30-60 min BEFORE BREAKFAST. Long-term PPI risks: C. diff infection, hypomagnesemia, bone fractures, B12 deficiency. Omeprazole inhibits CYP2C19 — reduces clopidogrel activation (reduces antiplatelet effect). Suffix: -prazole. Most prescribed class of drugs worldwide."}},
+
+  // Sucralfate
+  {drug:"Sucralfate",module:"Module 10",topic:"MOA",showDrugName:false,
+   q:"A patient with a peptic ulcer is given a GI protectant that reacts with HCl to form a viscous paste that adheres to the ulcer crater, creating a mechanical protective barrier against acid, pepsin, and bile. Which administration timing is essential?",
+   choices:{A:"30 minutes after meals and at bedtime",B:"On an empty stomach — 1 hour before meals",C:"With food to prevent nausea",D:"Immediately after antacids for additive protection"},correct:"B",
+   rationale:{correct:"Sucralfate must adhere directly to the ulcer surface before food arrives. Taking it 1 hour before meals on an empty stomach ensures maximum contact time with the ulcer crater before food and acid arrive.",
+   wrong:{A:"After meals, food has already coated the stomach — sucralfate cannot adhere to the ulcer as effectively.",C:"Taking with food reduces direct ulcer contact.",D:"Antacids raise gastric pH — sucralfate requires acidic environment to form its protective complex. Taking together is counterproductive."},
+   pearl:"Take on EMPTY STOMACH (1 hour before meals). Sucralfate BINDS other drugs — separate ALL medications by at least 2 hours (reduces absorption of fluoroquinolones, tetracyclines, levothyroxine). Contraindicated in severe renal failure (small aluminum absorption). Does NOT reduce acid — purely mechanical protection."}},
+
+  // Metoclopramide
+  {drug:"Metoclopramide",module:"Module 10",topic:"Contraindication",showDrugName:true,
+   q:"Metoclopramide is ordered for a patient with diabetic gastroparesis. Which condition is an absolute contraindication?",
+   choices:{A:"Type 2 diabetes with autonomic neuropathy",B:"Mechanical bowel obstruction",C:"Chemotherapy-induced nausea",D:"GERD with delayed gastric emptying"},correct:"B",
+   rationale:{correct:"Metoclopramide increases GI motility and gastric emptying. In a mechanical bowel obstruction, increased peristalsis against a physical blockage creates risk of perforation. Prokinetics are absolutely contraindicated with obstruction.",
+   wrong:{A:"Diabetic gastroparesis (delayed gastric emptying) is a PRIMARY indication for metoclopramide.",C:"Metoclopramide is used for chemotherapy nausea — not contraindicated.",D:"GERD with delayed emptying benefits from metoclopramide — not contraindicated."},
+   pearl:"BLACK BOX: TARDIVE DYSKINESIA — irreversible involuntary facial/tongue/limb movements with long-term use (>12 weeks). Use shortest effective duration. Also: extrapyramidal symptoms (acute dystonia, restlessness). Dopamine D2 antagonist — can cause neuroleptic-like effects. Take 30 min before meals. Increases lower esophageal sphincter tone."}},
+
+  // MODULE 11: Colchicine
+  {drug:"Colchicine",module:"Module 11",topic:"MOA",showDrugName:false,
+   q:"A patient has an acute gout flare — hot, red, exquisitely painful first metatarsophalangeal joint. A drug is prescribed that inhibits microtubule polymerization, preventing neutrophil migration into the joint. For best results, it should be started:",
+   choices:{A:"After urate-lowering therapy is initiated",B:"At the FIRST sign of a gout attack",C:"Only after confirming uric acid crystals by joint aspiration",D:"48 hours after the onset of symptoms for maximum benefit"},correct:"B",
+   rationale:{correct:"Colchicine provides the fastest relief when started at the very first sign of a gout attack (often the patient senses a flare coming before it fully develops). Delaying allows full neutrophil infiltration and inflammation to establish — much harder to treat.",
+   wrong:{A:"Urate-lowering therapy (allopurinol) is for chronic prevention — should NOT be started during an acute attack.",C:"Empiric treatment without aspiration is appropriate for classic presentations — waiting delays effective treatment.",D:"Starting 48 hours later significantly reduces colchicine efficacy."},
+   pearl:"For ACUTE GOUT only — start at FIRST SIGN for best results. Main side effect: SEVERE DIARRHEA, nausea, vomiting. Colchicine does NOT lower uric acid. Do NOT start allopurinol during an acute attack (can prolong/worsen it). Contraindicated with strong CYP3A4 inhibitors (toxicity risk). Renal dose adjustment required."}},
+
+  // Allopurinol
+  {drug:"Allopurinol",module:"Module 11",topic:"MOA",showDrugName:false,
+   q:"A patient with recurrent gout is started on a xanthine oxidase inhibitor to reduce uric acid production long-term. A potentially life-threatening skin reaction must be monitored. Which reaction?",
+   choices:{A:"Severe diarrhea and GI hemorrhage",B:"Stevens-Johnson Syndrome / toxic epidermal necrolysis",C:"Tendon rupture at weight-bearing joints",D:"Pulmonary toxicity and pleural effusions"},correct:"B",
+   rationale:{correct:"Allopurinol hypersensitivity syndrome ranges from mild rash to life-threatening Stevens-Johnson Syndrome (SJS) or Toxic Epidermal Necrolysis (TEN). Any rash should prompt immediate discontinuation. HLA-B*5801 allele (common in Han Chinese, Korean, Thai populations) significantly increases SJS risk.",
+   wrong:{A:"Severe diarrhea is the colchicine side effect — not allopurinol.",C:"Tendon rupture is a fluoroquinolone Black Box Warning.",D:"Pulmonary toxicity is an amiodarone side effect."},
+   pearl:"ANY RASH on allopurinol = STOP IMMEDIATELY (SJS/TEN risk). For CHRONIC GOUT PREVENTION only — does NOT treat acute attacks. Takes weeks-months to lower uric acid. Do NOT start during an acute attack. Increase fluid intake (prevent uric acid kidney stones). Dose-adjust in renal impairment. Goal uric acid: <6 mg/dL."}},
+
+  // Alendronate
+  {drug:"Alendronate",module:"Module 11",topic:"MOA",showDrugName:false,
+   q:"A post-menopausal woman with osteoporosis is started on a bisphosphonate that inhibits osteoclast activity, reducing bone resorption and increasing bone mineral density. She is instructed to remain upright for 30 minutes after taking it. What does this prevent?",
+   choices:{A:"Absorption by intestinal fat that reduces efficacy",B:"Esophageal irritation, ulceration, and stricture",C:"Orthostatic hypotension from vasodilation",D:"Renal crystal deposition"},correct:"B",
+   rationale:{correct:"Bisphosphonates are highly caustic to esophageal mucosa. If the tablet lodges in the esophagus (especially in patients with dysmotility or who lie down), it causes esophagitis, ulceration, bleeding, and stricture. Remaining upright for 30 minutes allows gravity to move the tablet into the stomach.",
+   wrong:{A:"Fat absorption is not the mechanism — efficacy is unrelated to upright posture.",C:"Bisphosphonates do not cause vasodilation or orthostatic hypotension.",D:"Renal crystal deposition is not prevented by posture."},
+   pearl:"STAY UPRIGHT 30 MINUTES after alendronate. Take first thing in the morning on EMPTY STOMACH with a full glass of water. No food, other medications, or drinks (except water) for 30-60 minutes. Contraindicated in: esophageal stricture/dysmotility, inability to sit upright. Rare: osteonecrosis of the jaw (ONJ), atypical femur fractures with long-term use. Suffix: -dronate."}},
+
+  // Calcitonin
+  {drug:"Calcitonin",module:"Module 11",topic:"MOA",showDrugName:false,
+   q:"A patient with hypercalcemia of malignancy requires rapid calcium reduction. A hormone is ordered that inhibits osteoclasts and promotes renal calcium excretion. Before administration, the nurse must check for which specific allergy?",
+   choices:{A:"Penicillin allergy",B:"Iodine allergy",C:"Salmon or fish allergy",D:"Sulfa allergy"},correct:"C",
+   rationale:{correct:"The clinically used calcitonin is salmon calcitonin, which is more potent and longer-acting than human calcitonin. Patients with salmon or seafood allergies may develop hypersensitivity reactions ranging from flushing to anaphylaxis — assess allergy history before first administration.",
+   wrong:{A:"Penicillin allergy is irrelevant to calcitonin structure.",B:"Iodine allergy is relevant to contrast dye and amiodarone — not calcitonin.",D:"Sulfa allergy is relevant to sulfonamides and some diuretics — not calcitonin."},
+   pearl:"Calcitonin 'TONES DOWN' serum calcium. Inhibits osteoclasts (reduces bone resorption) and promotes renal Ca2+ excretion. Uses: hypercalcemia, osteoporosis, Paget's disease, bone pain from metastases. Salmon allergy = assess before use. Nasal spray form available for osteoporosis. Tachyphylaxis limits long-term efficacy. Side effects: flushing, nausea."}},
+];
+
+// Map to modules
+const MODULE_MAP = {};
+QUESTION_BANK.forEach(q => {
+  if (!MODULE_MAP[q.module]) MODULE_MAP[q.module] = [];
+  MODULE_MAP[q.module].push(q);
+});
+
+const MODULE_NAMES = Object.keys(MODULE_MAP).sort();
 let selectedQCount = 10;
 let selectedModules = [...MODULE_NAMES];
 let moduleWeights = {};
 let questions = [];
 let currentQ = 0;
-let answers = {}; // {index: {selected, correct, revealed}}
-
-// Initialize weights
+let answers = {};
 MODULE_NAMES.forEach(m => moduleWeights[m] = 1);
 
 function initHome() {
   const grid = document.getElementById('modulesGrid');
   grid.innerHTML = '';
   MODULE_NAMES.forEach(mod => {
-    const count = DRUG_DATA[mod].drugs.length;
+    const count = MODULE_MAP[mod].length;
     const div = document.createElement('div');
     div.className = 'mod-item selected';
     div.id = 'mod_' + mod.replace(/\s+/g,'_');
     div.onclick = () => toggleModule(mod);
-    div.innerHTML = `<div class="mod-num">${mod.toUpperCase()}</div><div class="mod-name">${getModSubtitle(mod)}</div><div class="mod-count">${count} drugs</div>`;
+    div.innerHTML = `<div class="mod-num">${mod.toUpperCase()}</div><div class="mod-name">${getModSubtitle(mod)}</div><div class="mod-count">${count} questions</div>`;
     grid.appendChild(div);
   });
   updateSplitControls();
 }
 
 function getModSubtitle(mod) {
-  const map = {
-    "Module 2": "Core Pharmacology",
-    "Module 3": "Immune & Infection",
-    "Module 4": "Hematology & Cancer",
-    "Module 5": "Nervous System & Pain",
-    "Module 6": "Cardiovascular",
-    "Module 7": "Pulmonary",
-    "Module 8": "Renal & Urinary",
-    "Module 9": "Endocrine & Diabetes",
-    "Module 10": "GI & Hepatobiliary",
-    "Module 11": "Musculoskeletal"
-  };
-  return map[mod] || mod;
+  const m = {"Module 2":"Core Pharmacology","Module 3":"Immune & Infection","Module 4":"Hematology & Cancer","Module 5":"Nervous System & Pain","Module 6":"Cardiovascular","Module 7":"Pulmonary","Module 8":"Renal & Urinary","Module 9":"Endocrine & Diabetes","Module 10":"GI & Hepatobiliary","Module 11":"Musculoskeletal"};
+  return m[mod] || mod;
 }
 
 function toggleModule(mod) {
   const idx = selectedModules.indexOf(mod);
-  if (idx === -1) {
-    selectedModules.push(mod);
-  } else {
-    if (selectedModules.length === 1) return; // keep at least one
-    selectedModules.splice(idx, 1);
-  }
-  const el = document.getElementById('mod_' + mod.replace(/\s+/g,'_'));
-  el.classList.toggle('selected', selectedModules.includes(mod));
+  if (idx === -1) selectedModules.push(mod);
+  else { if (selectedModules.length === 1) return; selectedModules.splice(idx, 1); }
+  document.getElementById('mod_' + mod.replace(/\s+/g,'_')).classList.toggle('selected', selectedModules.includes(mod));
   updateSplitControls();
 }
 
 function selectQCount(n, custom=false) {
-  if (!custom) {
-    document.getElementById('customQ').value = '';
-    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('selected'));
-    document.querySelectorAll('.q-btn').forEach(b => {
-      if (parseInt(b.textContent) === n) b.classList.add('selected');
-    });
-  }
+  if (!custom) { document.getElementById('customQ').value = ''; document.querySelectorAll('.q-btn').forEach(b => b.classList.toggle('selected', parseInt(b.textContent) === n)); }
   selectedQCount = n;
 }
 
 function updateSplitControls() {
   const card = document.getElementById('splitCard');
   const container = document.getElementById('splitControls');
-  const summary = document.getElementById('splitSummary');
-
-  if (selectedModules.length <= 1) {
-    card.style.display = 'none';
-    return;
-  }
+  if (selectedModules.length <= 1) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   container.innerHTML = '';
-
   selectedModules.forEach(mod => {
     const w = moduleWeights[mod] || 1;
     const div = document.createElement('div');
     div.style.marginBottom = '14px';
-    div.innerHTML = `
-      <div class="slider-top">
-        <span style="font-size:13px;color:var(--text)">${mod}: <em style="color:var(--muted);font-style:normal">${getModSubtitle(mod)}</em></span>
-        <span class="slider-val" id="wval_${mod.replace(/\s+/g,'_')}">${w}x</span>
-      </div>
-      <input type="range" min="1" max="5" value="${w}" oninput="updateWeight('${mod}', parseInt(this.value))">
-      <div class="slider-hint">Weight: 1 = equal share · 5 = heavily weighted</div>
-    `;
+    div.innerHTML = `<div class="slider-top"><span style="font-size:13px;color:var(--text)">${mod}: <em style="color:var(--muted);font-style:normal">${getModSubtitle(mod)}</em></span><span class="slider-val" id="wval_${mod.replace(/\s+/g,'_')}">${w}x</span></div><input type="range" min="1" max="5" value="${w}" oninput="updateWeight('${mod}', parseInt(this.value))"><div class="slider-hint">Weight: 1 = equal share · 5 = heavily weighted</div>`;
     container.appendChild(div);
   });
   updateSummary();
@@ -915,144 +1315,40 @@ function updateWeight(mod, val) {
 }
 
 function updateSummary() {
-  const summary = document.getElementById('splitSummary');
   const total = selectedModules.reduce((s,m) => s + (moduleWeights[m]||1), 0);
-  const parts = selectedModules.map(m => {
-    const pct = Math.round(((moduleWeights[m]||1)/total)*100);
-    return `${m}: ${pct}%`;
-  });
-  summary.textContent = parts.join(' · ');
-}
-
-function buildDrugPool() {
-  const pool = [];
-  const total = selectedModules.reduce((s,m) => s + (moduleWeights[m]||1), 0);
-  selectedModules.forEach(mod => {
-    const w = moduleWeights[mod] || 1;
-    const count = Math.max(1, Math.round((w/total) * selectedQCount));
-    DRUG_DATA[mod].full.forEach(drug => {
-      for (let i = 0; i < w; i++) pool.push({...drug, module: mod});
-    });
-  });
-  return pool;
+  document.getElementById('splitSummary').textContent = selectedModules.map(m => `${m}: ${Math.round(((moduleWeights[m]||1)/total)*100)}%`).join(' · ');
 }
 
 function shuffleArray(arr) {
   const a = [...arr];
-  for (let i = a.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+  for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
 
-async function startQuiz() {
-  if (!selectedQCount || selectedQCount < 1) {
-    showHomeError('Please select a number of questions.');
-    return;
-  }
-  if (selectedModules.length === 0) {
-    showHomeError('Please select at least one module.');
-    return;
-  }
+function startQuiz() {
+  if (!selectedQCount || selectedQCount < 1) { showHomeError('Please select a number of questions.'); return; }
+  if (!selectedModules.length) { showHomeError('Please select at least one module.'); return; }
   document.getElementById('homeError').style.display = 'none';
 
-  showScreen('quiz');
-  document.getElementById('quizContent').innerHTML = `
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <div class="loading-text">GENERATING QUESTIONS...</div>
-    </div>`;
-
-  // Build weighted drug pool
-  const pool = buildDrugPool();
-  const shuffled = shuffleArray(pool);
-
-  // Pick drugs for questions (respect count)
-  const picked = shuffled.slice(0, Math.min(selectedQCount, shuffled.length));
-  // If we need more than pool has, wrap around
-  let finalPicked = picked;
-  if (picked.length < selectedQCount) {
-    const extra = shuffled.slice(0, selectedQCount - picked.length);
-    finalPicked = [...picked, ...extra];
-  }
-
-  // Generate questions via AI
-  const prompt = buildPrompt(finalPicked);
-  try {
-    const qs = await callClaude(prompt);
-    questions = qs;
-    answers = {};
-    currentQ = 0;
-    renderQuizMap();
-    renderQuestion(0);
-  } catch(e) {
-    document.getElementById('quizContent').innerHTML = `<div class="error-box">Failed to generate questions: ${e.message}. Please try again.</div>`;
-  }
-}
-
-function buildPrompt(drugs) {
-  const drugList = drugs.map((d,i) => `${i+1}. Drug: ${d.name} | Module: ${d.module} | Class: ${d.class} | MOA: ${d.moa} | Indications: ${d.indications} | Contraindications: ${d.contraindications} | Pearls: ${d.pearls}`).join('\n');
-
-  return `You are a pharmacology exam question generator. Generate exactly ${drugs.length} unique multiple-choice questions based on these drugs. Each question MUST focus on ONE of: mechanism of action (MOA), indications, OR contraindications. Vary the question types.
-
-DRUG LIST:
-${drugList}
-
-RULES:
-- Each question targets a DIFFERENT drug from the list (use the drug at the same index as the question)
-- QUESTION TYPES — choose the most appropriate style per question:
-  * "IDENTIFY" style: Student must figure out WHICH drug is being described. Do NOT name the drug anywhere in the stem or choices. Refer to it as "this medication" or describe a clinical scenario. The answer choices will be 4 different drug names. Set "showDrugName": false.
-  * "ABOUT" style: The drug IS named in the question stem, and the student must answer something about it (e.g. MOA, indication, contraindication, side effect). Answer choices are clinical concepts, not drug names. Set "showDrugName": true.
-- Vary the mix: roughly half IDENTIFY and half ABOUT questions across the set
-- CRITICAL for IDENTIFY questions: NEVER mention the drug name, brand name, or suffix (e.g. -pril, -olol, -statin, -cycline) in the stem or choices
-- 4 answer choices (A, B, C, D)
-- Exactly one correct answer
-- Wrong answers must be plausible (real pharmacology concepts, not obvious nonsense)
-- The "rationale" section must: (1) name the drug and explain WHY the correct answer is right with clinical detail, (2) explain why EACH wrong choice is incorrect, (3) include the clinical pearl for that drug
-- Questions must be UNIQUE and never repeat the same phrasing
-- Never reveal the answer in the question stem
-
-Respond ONLY with valid JSON (no markdown, no backticks, no preamble):
-{
-  "questions": [
-    {
-      "drugName": "string",
-      "module": "string",
-      "topic": "MOA" | "Indication" | "Contraindication",
-      "showDrugName": true,
-      "questionText": "string",
-      "choices": {"A": "string", "B": "string", "C": "string", "D": "string"},
-      "correctAnswer": "A" | "B" | "C" | "D",
-      "rationale": {
-        "correct": "string (why the correct answer is right)",
-        "wrongAnswers": {"A": "string", "B": "string", "C": "string", "D": "string"},
-        "pearl": "string"
-      }
-    }
-  ]
-}`;
-}
-
-async function callClaude(prompt) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 8000,
-      messages: [{ role: "user", content: prompt }]
-    })
+  let pool = [];
+  selectedModules.forEach(mod => {
+    const w = moduleWeights[mod] || 1;
+    const qs = MODULE_MAP[mod] || [];
+    for (let i = 0; i < w; i++) pool = pool.concat(qs);
   });
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message);
-  const text = data.content.map(i => i.text || '').join('');
-  const clean = text.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(clean);
-  return parsed.questions;
+
+  pool = shuffleArray(pool);
+  const seen = new Set();
+  const unique = pool.filter(q => { const k = q.drug+q.topic+q.q.slice(0,40); if (seen.has(k)) return false; seen.add(k); return true; });
+  let final = unique.slice(0, Math.min(selectedQCount, unique.length));
+  if (final.length < selectedQCount) final = [...final, ...shuffleArray(pool).slice(0, selectedQCount - final.length)];
+
+  questions = final;
+  answers = {};
+  currentQ = 0;
+  showScreen('quiz');
+  renderQuizMap();
+  renderQuestion(0);
 }
 
 function renderQuizMap() {
@@ -1064,127 +1360,71 @@ function renderQuizMap() {
     dot.id = 'dot_' + i;
     dot.textContent = i + 1;
     dot.onclick = () => navigateTo(i);
-    if (answers[i]) {
-      dot.classList.add('answered');
-      if (answers[i].selected && answers[i].selected !== answers[i].correct) {
-        dot.classList.add('wrong');
-      }
-    }
+    if (answers[i]) { dot.classList.add('answered'); if (answers[i].revealed && answers[i].selected !== answers[i].correct) dot.classList.add('wrong'); }
     map.appendChild(dot);
   });
 }
 
-function navigateTo(idx) {
-  currentQ = idx;
-  renderQuizMap();
-  renderQuestion(idx);
-}
+function navigateTo(idx) { currentQ = idx; renderQuizMap(); renderQuestion(idx); }
 
 function renderQuestion(idx) {
   const q = questions[idx];
   if (!q) return;
-
   const ans = answers[idx];
   const revealed = ans && ans.revealed;
   const total = questions.length;
-  const pct = Math.round((idx / total) * 100);
-
   document.getElementById('progLabel').textContent = `Question ${idx+1} of ${total}`;
-  document.getElementById('progPct').textContent = pct + '%';
-  document.getElementById('progBar').style.width = pct + '%';
+  document.getElementById('progPct').textContent = Math.round((idx/total)*100) + '%';
+  document.getElementById('progBar').style.width = Math.round((idx/total)*100) + '%';
 
-  let choicesHtml = '';
   const letters = ['A','B','C','D'];
+  let choicesHtml = '';
   letters.forEach(l => {
     let cls = 'mc-option';
-    if (revealed) {
-      cls += ' disabled';
-      if (l === q.correctAnswer) cls += ' correct';
-      else if (ans && ans.selected === l) cls += ' incorrect';
-    } else if (ans && ans.selected === l) {
-      cls += ' selected';
-    }
-    const clickHandler = revealed ? '' : `onclick="selectChoice('${l}')"`;
-    choicesHtml += `<div class="${cls}" id="opt_${l}" ${clickHandler}>
-      <div class="opt-letter">${l}</div>
-      <div class="opt-text">${q.choices[l]}</div>
-    </div>`;
+    if (revealed) { cls += ' disabled'; if (l === q.correct) cls += ' correct'; else if (ans && ans.selected === l) cls += ' incorrect'; }
+    else if (ans && ans.selected === l) cls += ' selected';
+    const click = revealed ? '' : `onclick="selectChoice('${l}')"`;
+    choicesHtml += `<div class="${cls}" ${click}><div class="opt-letter">${l}</div><div class="opt-text">${q.choices[l]}</div></div>`;
   });
 
   let rationaleHtml = '';
   if (revealed) {
-    const wrongHtml = letters.filter(l => l !== q.correctAnswer).map(l =>
-      `<div class="wrong-item"><span class="wrong-choice">${l}: ${q.choices[l]}</span><br><span class="rat-text">${q.rationale.wrongAnswers[l]}</span></div>`
+    const wrongHtml = letters.filter(l => l !== q.correct).map(l =>
+      `<div class="wrong-item"><span class="wrong-choice">${l}: ${q.choices[l]}</span><br><span class="rat-text">${q.rationale.wrong[l]}</span></div>`
     ).join('');
-    rationaleHtml = `
-      <div class="answer-reveal">
-        <div class="correct-answer-block">
-          <div class="ca-label">✓ Correct Answer — ${q.correctAnswer}</div>
-          <div class="ca-text">${q.choices[q.correctAnswer]}</div>
-        </div>
-        <div class="rationale-block">
-          <div class="rat-section">
-            <div class="rat-label why">✓ Why This Is Correct</div>
-            <div class="rat-text">${q.rationale.correct}</div>
-          </div>
-          <div class="rat-section">
-            <div class="rat-label wrong">✗ Why Other Choices Are Wrong</div>
-            ${wrongHtml}
-          </div>
-          <div class="rat-section">
-            <div class="rat-label pearl">★ Clinical Pearl</div>
-            <div class="rat-text">${q.rationale.pearl}</div>
-          </div>
-        </div>
-      </div>`;
+    rationaleHtml = `<div class="answer-reveal">
+      <div class="correct-answer-block"><div class="ca-label">✓ Correct Answer — ${q.correct}</div><div class="ca-text">${q.choices[q.correct]}</div></div>
+      <div class="rationale-block">
+        <div class="rat-section"><div class="rat-label why">✓ Why This Is Correct</div><div class="rat-text">${q.rationale.correct}</div></div>
+        <div class="rat-section"><div class="rat-label wrong">✗ Why Other Choices Are Wrong</div>${wrongHtml}</div>
+        <div class="rat-section"><div class="rat-label pearl">★ Clinical Pearl</div><div class="rat-text">${q.rationale.pearl}</div></div>
+      </div></div>`;
   }
 
   const isLast = idx === total - 1;
-  const allAnswered = Object.keys(answers).length >= total;
-  const canReveal = ans && ans.selected && !revealed;
+  let actionHtml = !revealed
+    ? `<button class="btn-reveal" onclick="revealAnswer()" ${!ans?.selected ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>Check Answer →</button>`
+    : `<div class="nav-row"><button class="nav-btn" onclick="navigateTo(${idx-1})" ${idx===0?'disabled':''}>← Previous</button>${isLast ? `<button class="nav-btn finish-btn" onclick="finishQuiz()">See Results ✓</button>` : `<button class="nav-btn next-btn" onclick="navigateTo(${idx+1})">Next →</button>`}</div>`;
 
-  let actionHtml = '';
-  if (!revealed) {
-    actionHtml = `<button class="btn-reveal" onclick="revealAnswer()" ${!ans?.selected ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>
-      Check Answer →
-    </button>`;
-  } else {
-    actionHtml = `<div class="nav-row">
-      <button class="nav-btn" onclick="navigateTo(${idx-1})" ${idx===0?'disabled':''}>← Previous</button>
-      ${isLast
-        ? `<button class="nav-btn finish-btn" onclick="finishQuiz()">See Results ✓</button>`
-        : `<button class="nav-btn next-btn" onclick="navigateTo(${idx+1})">Next →</button>`
-      }
-    </div>`;
-  }
-
+  const drugPill = `<span class="q-pill" style="color:var(--accent);border-color:rgba(79,142,247,0.3);background:rgba(79,142,247,0.08)">${q.drug}</span>`;
   document.getElementById('quizContent').innerHTML = `
-    <div class="q-meta">
-      <span class="q-pill mod">${q.module}</span>
-      <span class="q-pill topic">${q.topic}</span>
-      ${(revealed || q.showDrugName) ? `<span class="q-pill" style="color:var(--accent);border-color:rgba(79,142,247,0.3);background:rgba(79,142,247,0.08)">${q.drugName}</span>` : ''}
-    </div>
-    <div class="q-text">${q.questionText}</div>
+    <div class="q-meta"><span class="q-pill mod">${q.module}</span><span class="q-pill topic">${q.topic}</span>${(revealed || q.showDrugName) ? drugPill : ''}</div>
+    <div class="q-text">${q.q}</div>
     <div class="mc-options">${choicesHtml}</div>
-    ${rationaleHtml}
-    ${actionHtml}
-    ${revealed ? '' : `<div class="nav-row" style="margin-top:8px">
-      <button class="nav-btn" onclick="navigateTo(${idx-1})" ${idx===0?'disabled':''}>← Previous</button>
-      <button class="nav-btn" onclick="navigateTo(${idx+1})" ${idx===total-1?'disabled':''}>Skip →</button>
-    </div>`}
-  `;
+    ${rationaleHtml}${actionHtml}
+    ${revealed ? '' : `<div class="nav-row" style="margin-top:8px"><button class="nav-btn" onclick="navigateTo(${idx-1})" ${idx===0?'disabled':''}>← Previous</button><button class="nav-btn" onclick="navigateTo(${idx+1})" ${idx===total-1?'disabled':''}>Skip →</button></div>`}`;
 }
 
 function selectChoice(letter) {
   if (!answers[currentQ]) answers[currentQ] = {};
   if (answers[currentQ].revealed) return;
   answers[currentQ].selected = letter;
-  answers[currentQ].correct = questions[currentQ].correctAnswer;
+  answers[currentQ].correct = questions[currentQ].correct;
   renderQuestion(currentQ);
 }
 
 function revealAnswer() {
-  if (!answers[currentQ] || !answers[currentQ].selected) return;
+  if (!answers[currentQ]?.selected) return;
   answers[currentQ].revealed = true;
   renderQuizMap();
   renderQuestion(currentQ);
@@ -1193,45 +1433,26 @@ function revealAnswer() {
 function finishQuiz() {
   const total = questions.length;
   let correct = 0;
-  questions.forEach((q, i) => {
-    if (answers[i] && answers[i].selected === q.correctAnswer) correct++;
-  });
-  const wrong = total - correct;
+  questions.forEach((q,i) => { if (answers[i]?.selected === q.correct) correct++; });
   const pct = Math.round((correct/total)*100);
-
   document.getElementById('statCorrect').textContent = correct;
-  document.getElementById('statWrong').textContent = wrong;
+  document.getElementById('statWrong').textContent = total - correct;
   document.getElementById('statTotal').textContent = total;
-
-  const scoreEl = document.getElementById('resultScore');
-  scoreEl.textContent = pct + '%';
-  scoreEl.className = 'result-score ' + (pct >= 80 ? 'great' : pct >= 60 ? 'ok' : 'low');
-
-  const labels = ['Keep studying! You\'ve got this. 💪', 'Getting there — review the rationales!', 'Solid work!', 'Great job!', 'Outstanding! 🎉'];
-  const labelIdx = pct >= 90 ? 4 : pct >= 80 ? 3 : pct >= 70 ? 2 : pct >= 60 ? 1 : 0;
-  document.getElementById('resultLabel').textContent = labels[labelIdx];
-
+  const s = document.getElementById('resultScore');
+  s.textContent = pct + '%';
+  s.className = 'result-score ' + (pct>=80?'great':pct>=60?'ok':'low');
+  const labels = ['Keep studying! You\'ve got this. 💪','Getting there — review the rationales!','Solid work!','Great job!','Outstanding! 🎉'];
+  document.getElementById('resultLabel').textContent = labels[pct>=90?4:pct>=80?3:pct>=70?2:pct>=60?1:0];
   showScreen('results');
 }
 
-function goHome() {
-  showScreen('home');
-}
+function goHome() { showScreen('home'); }
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showHomeError(msg) { const e=document.getElementById('homeError'); e.textContent=msg; e.style.display='block'; }
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function showHomeError(msg) {
-  const el = document.getElementById('homeError');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-// Init
 initHome();
 selectQCount(10);
+
 </script>
 </body>
 </html>
